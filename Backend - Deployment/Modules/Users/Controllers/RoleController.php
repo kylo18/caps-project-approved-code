@@ -30,8 +30,7 @@ class RoleController extends Controller
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error fetching roles.',
-                'error' => $e->getMessage()
+                'message' => 'Error fetching roles.'
             ], 500);
         }
     }

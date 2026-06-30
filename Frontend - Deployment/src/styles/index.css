@@ -1,5 +1,54 @@
 @import "tailwindcss";
 
+@layer base {
+  html {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  html.dark {
+    @apply bg-[#12141D] text-slate-100;
+  }
+
+  body {
+    @apply min-h-screen;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
+
+/* Light theme classes used widely throughout the app.
+   These overrides ensure the UI actually darkens when `html.dark` is set. */
+html.dark .bg-white,
+html.dark .bg-gray-50,
+html.dark .bg-gray-100,
+html.dark .bg-gray-200 {
+  background-color: #12141d !important;
+}
+
+html.dark .text-black,
+html.dark .text-gray-900,
+html.dark .text-gray-800 {
+  color: rgb(226, 232, 240) !important; /* slate-200 */
+}
+
+html.dark .border-color {
+  border-color: rgb(71, 85, 105); /* slate-600 */
+}
+
+/* Make existing Tailwind hover utilities look right in dark mode */
+html.dark .hover\:bg-gray-100:hover {
+  background-color: rgb(31, 41, 55) !important; /* gray-800 */
+}
+html.dark .hover\:bg-gray-200:hover {
+  background-color: rgb(55, 65, 81) !important; /* gray-700 */
+}
+html.dark .hover\:text-gray-800:hover,
+html.dark .hover\:text-gray-700:hover {
+  color: rgb(226, 232, 240) !important; /* slate-200 */
+}
+
 .text-stroke {
   text-shadow:
     rgba(223, 239, 255) 0px 3px 0px,
@@ -8,6 +57,39 @@
     rgba(0, 0, 0, 0.1) 0px 17px 15px;
   color: rgb(50, 93, 136);
   font-family: arial;
+}
+
+rubik-800 {
+  font-family: "Rubik", sans-serif;
+  font-weight: 800;
+}
+
+/* Outfit font utilities */
+.outfit {
+  font-family: "Outfit", sans-serif;
+}
+
+.outfit-100 {
+  font-family: "Outfit", sans-serif;
+  font-weight: 100;
+}
+
+.outfit-300 {
+  font-family: "Outfit", sans-serif;
+  font-weight: 300;
+}
+
+.outfit-400 {
+  font-family: "Outfit", sans-serif;
+  font-weight: 400;
+}
+.outfit-500 {
+  font-family: "Outfit", sans-serif;
+  font-weight: 500;
+}
+.outfit-700 {
+  font-family: "Outfit", sans-serif;
+  font-weight: 700;
 }
 
 .roboto {
@@ -62,7 +144,7 @@ select option:hover {
 }
 
 .border-color {
-  border-color: rgb(209, 213, 219);
+  border-color: rgb(218, 221, 225);
 }
 
 .font-color-gray {
@@ -347,6 +429,21 @@ select option:hover {
   animation: fade-in 0.18s ease;
 }
 
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
 @keyframes fadein {
   from {
     opacity: 0;
@@ -362,7 +459,28 @@ select option:hover {
   animation: fadein 0.2s ease-out forwards;
 }
 
-.open-sans {
+.dm-sans {
+  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
+}
+
+.dm-sans-400 {
+  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
+  font-weight: 400;
+}
+.dm-sans-500 {
+  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
+  font-weight: 500;
+}
+.dm-sans-600 {
+  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
+  font-weight: 600;
+}
+.dm-sans-700 {
+  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
+  font-weight: 700;
+}
+
+.outfit {
   font-family: "Open Sans", sans-serif;
 }
 
@@ -407,4 +525,27 @@ select option:hover {
 
 .slide-in-right {
   animation: slideInRight 0.2s ease-out forwards;
+}
+
+/* Marquee (right-to-left) */
+.marquee {
+  overflow: hidden;
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-left 18s linear infinite;
+}
+.marquee-content {
+  display: flex;
+  gap: 2rem;
+  padding-right: 2rem; /* spacing between repeats */
+}
+@keyframes marquee-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }

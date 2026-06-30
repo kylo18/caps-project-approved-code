@@ -27,11 +27,11 @@ class StudentTeacherEnrollmentController extends Controller
             }
 
             $validated = $request->validate([
-                'teacher_id' => 'required|exists:users,id',
+                'teacher_id' => 'required|exists:users,userID',
             ]);
 
-            // Prevent duplicate enrollment
-            $exists = StudentTeacherEnrollment::where('student_id', $user->id)
+            // Prevent duplicate enrollment (User PK is userID — $user->id is null)
+            $exists = StudentTeacherEnrollment::where('student_id', $user->userID)
                 ->where('teacher_id', $validated['teacher_id'])
                 ->exists();
             if ($exists) {
@@ -39,7 +39,7 @@ class StudentTeacherEnrollmentController extends Controller
             }
 
             $enrollment = StudentTeacherEnrollment::create([
-                'student_id' => $user->id,
+                'student_id' => $user->userID,
                 'teacher_id' => $validated['teacher_id'],
             ]);
 
@@ -51,7 +51,6 @@ class StudentTeacherEnrollmentController extends Controller
             Log::error('Student enrollment error: ' . $e->getMessage());
             return response()->json([
                 'message' => 'An internal error occurred.',
-                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -70,8 +69,8 @@ class StudentTeacherEnrollmentController extends Controller
                 return response()->json(['message' => 'Only students can view their teachers.'], 403);
             }
 
-            $teacherIds = StudentTeacherEnrollment::where('student_id', $user->id)->pluck('teacher_id');
-            $teachers = User::whereIn('id', $teacherIds)->get();
+            $teacherIds = StudentTeacherEnrollment::where('student_id', $user->userID)->pluck('teacher_id');
+            $teachers = User::whereIn('userID', $teacherIds)->get();
 
             return response()->json([
                 'message' => 'Teachers retrieved successfully.',
@@ -81,7 +80,6 @@ class StudentTeacherEnrollmentController extends Controller
             Log::error('Fetching teachers error: ' . $e->getMessage());
             return response()->json([
                 'message' => 'An internal error occurred.',
-                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -100,7 +98,7 @@ class StudentTeacherEnrollmentController extends Controller
                 return response()->json(['message' => 'Only teachers can view their students.'], 403);
             }
 
-            $studentIds = StudentTeacherEnrollment::where('teacher_id', $user->id)->pluck('student_id');
+            $studentIds = StudentTeacherEnrollment::where('teacher_id', $user->userID)->pluck('student_id');
             $students = User::whereIn('userID', $studentIds)->get();
 
             return response()->json([
@@ -111,7 +109,6 @@ class StudentTeacherEnrollmentController extends Controller
             Log::error('Fetching students error: ' . $e->getMessage());
             return response()->json([
                 'message' => 'An internal error occurred.',
-                'error' => $e->getMessage()
             ], 500);
         }
     }

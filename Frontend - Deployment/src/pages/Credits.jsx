@@ -1,6 +1,8 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const Credits = () => {
+  const navigate = useNavigate();
   const developers = [
     {
       name: "Darjay Roy S. Ebao",
@@ -60,13 +62,22 @@ const Credits = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat px-4 py-12 sm:px-6 lg:px-8"
+      className="relative min-h-screen bg-cover bg-center bg-no-repeat px-4 py-12 sm:px-6 lg:px-8"
       style={{
         backgroundImage: "url('/bg.jpg')",
         backgroundSize: "200%",
         backgroundPosition: "center",
       }}
     >
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="absolute top-5 left-5 flex items-center gap-1.5 rounded-xl bg-white/80 px-3 py-2 text-[18px] font-medium text-gray-700 backdrop-blur-sm transition-colors hover:bg-white hover:text-gray-900"
+        aria-label="Go back"
+      >
+        <i className="bx bx-arrow-left-stroke text-[26px]" />
+        <span>Back</span>
+      </button>
       <div className="mx-auto max-w-7xl">
         {/* Header Section */}
         <div className="mb-16 text-center">

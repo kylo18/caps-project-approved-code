@@ -81,29 +81,9 @@ class UserController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        // Fetch remarks and curriculum for students
-        $remarks = null;
-        $curriculum = null;
-        if ($user->roleID == 1) {
-            $remarksRow = \DB::table('student_remarks')
-                ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
-                ->where('student_remarks.userID', $user->userID)
-                ->select('remarks.remarksType')
-                ->first();
-            $remarks = $remarksRow ? $remarksRow->remarksType : null;
-            $curriculumRow = \DB::table('student_curricula')
-                ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
-                ->where('student_curricula.userID', $user->userID)
-                ->select('curriculum.curriculumType')
-                ->first();
-            $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
-        }
-
         return response()->json([
             'email' => $user->email,
             'fullName' => $user->firstName . ' ' . $user->lastName,
-            'remarks' => $remarks,
-            'curriculum' => $curriculum,
         ], 200);
     }
 
@@ -201,8 +181,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             Log::error('User approval error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An error occurred while approving the user.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while approving the user.'
             ], 500);
         }
     }
@@ -291,8 +270,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             Log::error('Profile update error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An unexpected error occurred while updating your profile.',
-                'error' => $e->getMessage()
+                'message' => 'An unexpected error occurred while updating your profile.'
             ], 500);
         }
     }
@@ -382,8 +360,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             Log::error('Role change error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An unexpected error occurred while changing the user role',
-                'error' => $e->getMessage()
+                'message' => 'An unexpected error occurred while changing the user role'
             ], 500);
         }
     }
@@ -543,23 +520,6 @@ class UserController extends Controller
                       ->take($perPage)
                       ->get()
                       ->map(function ($user) {
-                          // Fetch remarks and curriculum for students
-                          $remarks = null;
-                          $curriculum = null;
-                          if ($user->roleID == 1) {
-                              $remarksRow = \DB::table('student_remarks')
-                                  ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
-                                  ->where('student_remarks.userID', $user->userID)
-                                  ->select('remarks.remarksType')
-                                  ->first();
-                              $remarks = $remarksRow ? $remarksRow->remarksType : null;
-                              $curriculumRow = \DB::table('student_curricula')
-                                  ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
-                                  ->where('student_curricula.userID', $user->userID)
-                                  ->select('curriculum.curriculumType')
-                                  ->first();
-                              $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
-                          }
                           return [
                               'userID' => $user->userID,
                               'userCode' => $user->userCode,
@@ -575,8 +535,6 @@ class UserController extends Controller
                               'isActive' => $user->isActive,
                               'status_id' => $user->status_id,
                               'status' => $user->status ? $user->status->name : 'Unknown',
-                              'remarks' => $remarks,
-                              'curriculum' => $curriculum,
                           ];
                       });
 

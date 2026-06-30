@@ -5,7 +5,10 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Modules\PracticeExams\Models\PracticeExamResult;
+use App\Policies\PracticeExamResultPolicy;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,7 +33,10 @@ class AppServiceProvider extends ServiceProvider
             base_path('Modules/Users/Database/Migrations'),
             base_path('Modules/Subjects/Database/Migrations'),
             base_path('Modules/PracticeExams/Database/Migrations'),
-        ]);
+            base_path('Modules/Semester/Database/Migrations'),
+            base_path('Modules/PersonalExams/Database/Migrations'),
+            base_path('Modules/PersonalClasses/Database/Migrations'),
+        ]); 
 
         Schema::defaultStringLength(191);
 
@@ -42,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
         Relation::morphMap([
             'year_level' => 'Modules\Subjects\Models\YearLevel',
         ]);
+
+        // Authorization policies
+        Gate::policy(PracticeExamResult::class, PracticeExamResultPolicy::class);
 
         if (env('APP_ENV') !== 'local') {
             URL::forceScheme('https');

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
+import { Textfit } from "react-textfit";
 import PracticeExamConfig from "./SubjectSettingsDean";
 import { useNavigate } from "react-router-dom";
 import RegisterDropDownSmall from "./registerDropDownSmall";
-import SearchQuery from "./SearchQuery";
 import ConfirmModal from "./confirmModal";
+import PrintExamModal from "./PrintExamModal";
 
 // Component to display subject information and tabs for admin/faculty view
 const SubjectCard = ({
@@ -125,7 +126,7 @@ const SubjectCard = ({
   }, [activeIndex]);
 
   const tabs = [
-    { label: "Practice", index: 0 },
+    { label: "Practice Exam", index: 0 },
     { label: "Qualifying Exam", index: 1 },
     { label: "Pending", index: 4 },
   ];
@@ -213,7 +214,7 @@ const SubjectCard = ({
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/programs`,
@@ -247,7 +248,7 @@ const SubjectCard = ({
 
   // Save edit handler
   const handleSaveEdit = async () => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     setIsEditing(true);
     try {
       const updateData = {
@@ -317,14 +318,6 @@ const SubjectCard = ({
     } finally {
       setIsEditing(false);
     }
-  };
-
-  // Function to refresh questions list
-  const handleRefresh = () => {
-    // Close search input when refreshing
-    setShowSearchInput(false);
-    setSearchAnim("");
-    onFetchQuestions();
   };
 
   // Effect to update tab indicator position
@@ -402,7 +395,7 @@ const SubjectCard = ({
 
   // Delete subject handler
   const handleDeleteSubject = async (subjectID) => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     setIsDeleting(true);
     try {
       const response = await fetch(
@@ -436,61 +429,6 @@ const SubjectCard = ({
     setTabIndicatorUpdate((n) => n + 1);
   }, [activeIndex, subjectName]); // subjectName in case the tab bar changes width
 
-  const SkeletonLoader = () => (
-    <>
-      {/* Desktop skeleton */}
-      <div className="relative z-51 -mt-3 hidden h-45 overflow-hidden rounded-sm border border-gray-300 bg-white px-4 pt-4 sm:block lg:h-40">
-        <div className="flex animate-pulse items-center space-x-4">
-          <div className="skeleton shimmer h-18 w-18 rounded-md"></div>
-          <div className="flex-1">
-            <div className="skeleton shimmer mb-2 h-8 w-1/2"></div>
-            <div className="skeleton shimmer h-4 w-2/8 rounded"></div>
-          </div>
-        </div>
-        <div className="open-sans mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold md:hidden">
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 hidden h-9 w-28 items-center justify-center rounded-md min-[500px]:flex"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-        </div>
-
-        <div className="absolute right-5 bottom-5 z-51 mt-4 hidden gap-3 md:flex">
-          <div className="skeleton shimmer h-10 w-10 rounded-xl bg-gray-300"></div>
-          <div className="skeleton shimmer h-10 w-10 rounded-xl bg-gray-300"></div>
-          <div className="skeleton shimmer h-10 w-28 rounded-xl bg-gray-300"></div>
-          <div className="skeleton shimmer h-10 w-28 rounded-xl bg-gray-300"></div>
-        </div>
-      </div>
-      <div className="relative z-51 -mx-2 -mt-2 hidden h-12 overflow-visible border-r border-b border-l border-gray-300 bg-gray-100 px-4 pt-6 sm:mx-0 sm:block sm:rounded-b-md sm:pt-4 lg:hidden"></div>
-
-      {/* Mobile skeleton */}
-      <div className="relative z-48 -mx-2 overflow-visible border border-gray-300 bg-white px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden">
-        <div className="flex flex-wrap items-start justify-between">
-          <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-            <div className="skeleton shimmer mt-2 mb-2 ml-2 h-8 w-58 rounded"></div>
-            <div className="mt-2 ml-2 flex gap-1">
-              <div className="skeleton shimmer h-5 w-38 rounded"></div>
-            </div>
-          </div>
-          <div className="skeleton shimmer mt-1 size-20 rounded-md"></div>
-        </div>
-        <div className="open-sans mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold">
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 hidden h-9 w-28 items-center justify-center rounded-md min-[500px]:flex"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-        </div>
-      </div>
-      <div className="relative z-48 -mx-2 -mt-2 h-12 overflow-visible border-b border-gray-300 bg-gray-100 px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden"></div>
-    </>
-  );
-
-  const [showSearchInput, setShowSearchInput] = useState(false);
-  const [searchAnim, setSearchAnim] = useState("");
-  const searchTimeoutRef = useRef(null);
-  const searchInputRef = useRef(null);
   const [isResizing, setIsResizing] = useState(false);
   const resizeTimeoutRef = useRef(null);
 
@@ -521,45 +459,11 @@ const SubjectCard = ({
     }
   }, [editingSubject, showDeleteModal, isFormOpen]);
 
-  // Reset search input state on mount and subject change
-  useEffect(() => {
-    setShowSearchInput(false);
-    setSearchAnim("");
-  }, [subjectID, subjectName]);
-
-  // Handle open/close with animation
-  const handleToggleSearch = () => {
-    if (showSearchInput) {
-      setSearchAnim("animate-search-popout");
-      searchTimeoutRef.current = setTimeout(() => {
-        setShowSearchInput(false);
-        setSearchAnim("");
-      }, 250); // match animation duration
-    } else {
-      setShowSearchInput(true);
-      setSearchAnim("animate-search-popup");
-    }
-  };
-
   useEffect(() => {
     return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
       if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
     };
   }, []);
-
-  // Scroll search input into view on small screens when it appears
-  useEffect(() => {
-    if (showSearchInput && searchInputRef.current && window.innerWidth < 768) {
-      setTimeout(() => {
-        const rect = searchInputRef.current.getBoundingClientRect();
-        const scrollTop =
-          window.pageYOffset || document.documentElement.scrollTop;
-        const targetY = rect.top + scrollTop - 44; // 100px from top
-        window.scrollTo({ top: targetY, behavior: "smooth" });
-      }, 10); // allow render
-    }
-  }, [showSearchInput]);
 
   // Add this useEffect to close edit modal on outside click for min-[448px]
   useEffect(() => {
@@ -582,21 +486,44 @@ const SubjectCard = ({
   }, [editingSubject]);
 
   const [showPreview, setShowPreview] = useState(false);
+  const [isWorksheetModalOpen, setIsWorksheetModalOpen] = useState(false);
+  const [worksheetSubject, setWorksheetSubject] = useState(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   return (
     <div>
-      {isLoading ? (
-        <SkeletonLoader />
-      ) : (
+      {isLoading ? null : (
         <>
+          {/* Top search bar (desktop only) */}
+          <div className="outfit-500 relative mx-auto -mt-1 mb-5 hidden w-full max-w-[1250px] px-2 text-[14px] lg:block">
+            <i className="bx bx-search absolute top-1/2 left-5 -translate-y-1/2 text-lg text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search questions..."
+              className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+              value={searchQuery || ""}
+              maxLength={50}
+              onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
+            />
+            {searchQuery && setSearchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute top-1/2 right-4 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+                aria-label="Clear search"
+              >
+                <i className="bx bx-x text-xl" />
+              </button>
+            )}
+          </div>
+
           {/* Mobile & Tablet */}
-          <div className="relative z-48 -mx-2 overflow-visible border border-gray-300 bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
+          <div className="border-color relative z-48 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
             <div className="flex flex-wrap items-start justify-between sm:hidden">
               <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-                <h1 className="open-sans mt-2 ml-2 text-[18px] font-bold break-words">
+                <h1 className="outfit-700 mt-2 ml-2 text-[18px] font-bold break-words">
                   {subjectName}
                 </h1>
-                <div className="mt-2 ml-2 flex gap-1 text-gray-500">
+                <div className="outfit-400 mt-2 ml-2 flex gap-1 text-gray-500">
                   <i className="bx bx-book mt-[1px] text-lg"></i>
                   <p className="text-[14px]">{subjectCode}</p>
                   <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
@@ -614,7 +541,7 @@ const SubjectCard = ({
               <img
                 src={SubPhoto}
                 alt="Subject"
-                className="mt-1 size-20 rounded-md border border-gray-300 object-cover"
+                className="border-color mt-1 size-20 rounded-md border object-cover"
               />
             </div>
 
@@ -622,13 +549,13 @@ const SubjectCard = ({
               <img
                 src={SubPhoto}
                 alt="Subject"
-                className="mr-5 size-18 rounded-md border border-gray-300 object-cover"
+                className="border-color mr-5 size-18 rounded-md border object-cover"
               />
               <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="open-sans text-[15px] font-bold break-words md:text-[18px]">
+                <h1 className="outfit-700 text-[15px] font-bold break-words md:text-[18px]">
                   {subjectName}
                 </h1>
-                <div className="mt-1 flex gap-1 text-gray-500">
+                <div className="outfit-400 mt-1 flex gap-1 text-gray-500">
                   <i className="bx bx-book mt-[1px] text-lg"></i>
 
                   <p className="text-[14px]">{subjectCode}</p>
@@ -648,45 +575,71 @@ const SubjectCard = ({
               </div>
             </div>
 
-            {/* Button row for Tablet and Mobile (Configure, Preview, Refresh) */}
-            <div className="open-sans mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
+            {/* Button row for Tablet and Mobile (Configure, Preview, Worksheet, Menu) */}
+            <div className="outfit-500 mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold md:hidden">
               <button
-                onClick={() => alert("Feature is coming in the next update")}
-                className="mb-6 flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
+                onClick={() =>
+                  alert("Exam preview will be available in a future update.")
+                }
+                className="border-color mb-6 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
               >
                 <i className="bx bx-eye text-lg"></i>
                 <span className="text-[14px]">Preview</span>
               </button>
               <button
                 onClick={handleAssignClick}
-                className="mb-6 hidden items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
+                className="border-color mb-6 flex items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
               >
                 <i className="bx bx-cog text-lg"></i>
-                <span>Configure</span>
+                <span>Settings</span>
               </button>
               <button
-                onClick={handleRefresh}
-                className="mb-6 flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
+                className="border-color mb-6 hidden items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
+                onClick={() => {
+                  setWorksheetSubject({
+                    subjectID,
+                    subjectName,
+                    subjectCode,
+                    programName,
+                    yearLevel,
+                  });
+                  setIsWorksheetModalOpen(true);
+                }}
               >
-                <i className="bx bx-refresh-ccw text-lg"></i>
-                <span className="text-[14px]">Refresh</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-download-icon lucide-download"
+                >
+                  <path d="M12 15V3" />
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+                <span className="text-[14px]">Worksheet</span>
               </button>
 
-              {/* Mobile/tablet search button */}
+              {/* Mobile search toggle */}
               <button
-                ref={actionButtonRef}
-                onClick={handleToggleSearch}
-                className="mb-6 flex cursor-pointer items-center justify-center rounded-md border border-gray-300 px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 md:hidden"
+                type="button"
+                onClick={() => setShowMobileSearch((prev) => !prev)}
+                className="border-color mb-6 flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100"
               >
                 <i
-                  className={`bx ${showSearchInput ? "bx-x" : "bx-search-big"} text-2xl`}
+                  className={`bx ${showMobileSearch ? "bx-x" : "bx-search"} text-2xl`}
                 ></i>
               </button>
 
               <button
                 ref={actionButtonRef}
                 onClick={() => setShowDropdown((prev) => !prev)}
-                className="mb-6 flex cursor-pointer items-center justify-center rounded-md border border-gray-300 px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 md:hidden"
+                className="border-color mb-6 flex cursor-pointer items-center justify-center rounded-xl border px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 md:hidden"
               >
                 <i className="bx bx-dots-vertical-rounded text-2xl"></i>
               </button>
@@ -694,13 +647,13 @@ const SubjectCard = ({
           </div>
 
           {/* Tablet Tabs Bar (below card) */}
-          <div className="open-sans relative z-48 -mx-2 -mt-2 mb-2 h-[50px] overflow-visible border border-gray-300 bg-gray-50 pt-2 font-semibold sm:mx-0 sm:block sm:rounded-b-md md:hidden">
+          <div className="outfit-400 border-color relative z-48 -mt-2 mb-2 h-[50px] overflow-visible border bg-gray-50 pt-2 sm:mx-0 sm:block sm:rounded-b-md md:hidden">
             <ul className="mt-[6px] flex h-full w-full justify-between text-center">
               {tabs.map((tab) => (
                 <li
                   key={tab.index}
                   ref={(el) => (tabletTabRefs.current[tab.index] = el)}
-                  className={`relative flex-1 cursor-pointer text-[13px] font-semibold transition-colors duration-200 ${
+                  className={`relative flex-1 cursor-pointer text-[13px] transition-colors duration-200 ${
                     activeIndex === tab.index
                       ? "text-orange-500"
                       : "text-gray-600 hover:text-gray-900"
@@ -726,203 +679,244 @@ const SubjectCard = ({
             />
           </div>
 
-          {/* Desktop */}
-          <div className="relative z-48 -mt-3 mb-2 hidden overflow-visible rounded-sm border border-gray-300 bg-white px-4 pt-4 sm:z-51 md:block">
-            <div className="flex">
-              <button
-                onClick={handleRefresh}
-                className="border-color absolute top-2 right-2 flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-sm text-gray-700 transition hover:bg-gray-100 sm:absolute"
-              >
-                <i className="bx bx-refresh-ccw text-base text-gray-500"></i>
-                <span className="hidden text-[14px] sm:inline">Refresh</span>
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center">
-              <img
-                src={SubPhoto}
-                alt="Subject"
-                className="mr-5 size-18 rounded-md border border-gray-300 object-cover"
+          {/* Mobile & Tablet search bar (shown when toggled) */}
+          {showMobileSearch && (
+            <div className="outfit-500 relative mx-auto mt-4 mb-2 w-full max-w-[1250px] px-4 text-[14px] md:hidden">
+              <i className="bx bx-search absolute top-1/2 left-7 -translate-y-1/2 text-lg text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search questions..."
+                autoFocus
+                inputMode="search"
+                className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                value={searchQuery || ""}
+                maxLength={50}
+                onChange={(e) =>
+                  setSearchQuery && setSearchQuery(e.target.value)
+                }
               />
-              <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="open-sans text-[15px] font-bold break-words md:text-[18px]">
-                  {subjectName}
-                </h1>
-                <div className="mt-1 flex gap-1 text-gray-500">
-                  <i className="bx bx-book mt-[1px] text-lg"></i>
+            </div>
+          )}
 
-                  <p className="text-[14px]">{subjectCode}</p>
-                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
+          {/* Desktop */}
+          <div className="border-color relative z-48 mx-auto -mt-3 hidden max-w-[1200px] overflow-visible border-b bg-white px-6 pt-6 pb-0 md:block">
+            {/* Card header/content */}
+            <div className="flex w-full flex-col items-center pb-4 md:flex-row md:flex-nowrap md:items-center">
+              <div className="relative ml-2 flex flex-col items-center md:mr-5">
+                <img
+                  src={SubPhoto}
+                  alt="Subject"
+                  className="border-color size-21 rounded-md border object-cover"
+                />
+              </div>
+              <div className="outfit-400 flex max-w-full min-w-0 flex-col flex-wrap md:max-w-[calc(100%-200px)]">
+                <div className="outfit-700 line-clamp-2">
+                  <Textfit
+                    mode="multi"
+                    min={14}
+                    max={20}
+                    style={{
+                      fontWeight: 600,
+                      lineHeight: "1.2",
+                      fontFamily: "Outfit, sans-serif",
+                    }}
+                  >
+                    <span className="text-[18px]">{subjectName}</span>
+                  </Textfit>
+                </div>
+                <div className="mt-2 flex gap-1 text-gray-500">
+                  <i className="bx bx-book mt-[1px] text-[16px]"></i>
+                  <p className="outfit-400 text-[14px]">{subjectCode}</p>
+                  <span className="mx-1 mt-[2px] align-middle leading-none text-gray-400">
                     •
                   </span>
-                  <p className="text-[14px]">
+                  <i className="bx bx-cog mt-[1px] text-[16px]"></i>
+                  <p className="outfit-400 text-[14px]">
                     {programName === "GE"
                       ? "General Subject"
                       : programName || "-"}
                   </p>
-                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
+                  <span className="mx-1 mt-[2px] align-middle leading-none text-gray-400">
                     •
                   </span>
-                  <p className="text-[14px]">{yearLevel || "-"}</p>
+                  <i className="bx bx-people-diversity mt-[1px] text-[16px]"></i>
+                  <p className="outfit-400 text-[14px]">{yearLevel || "-"}</p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-[14px] flex w-full items-center justify-between">
-              <div className="relative mt-[2px] ml-5 flex w-full justify-start lg:ml-10">
-                <ul className="relative flex flex-wrap justify-center gap-7 text-sm font-semibold text-gray-600">
-                  {["Practice", "Qualifying Exam"].map((item, index) => (
-                    <li
-                      key={index}
-                      ref={(el) => (tabRefs.current[index] = el)}
-                      className={`cursor-pointer ${
-                        activeIndex === index
-                          ? "text-orange-500"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                      onClick={() => setActiveIndex(index)}
-                    >
-                      <span className="block min-[1150px]:hidden">{item}</span>
-                      <span className="hidden min-[1150px]:block">
-                        {item} Questions
-                      </span>
-                    </li>
-                  ))}
-                  <li
-                    ref={(el) => (tabRefs.current[4] = el)}
-                    className={`cursor-pointer ${
-                      activeIndex === 4
-                        ? "text-orange-500"
-                        : "hover:text-gray-900"
-                    }`}
-                    onClick={() => setActiveIndex(4)}
+            {/* Desktop Button Row */}
+            <div className="outfit mb-0 flex w-full flex-row items-center justify-end gap-2 pb-1 font-semibold">
+              {/* Right: Actions dropdown beside Configure, then Preview */}
+              <div className="flex flex-row items-center gap-2">
+                <div className="relative">
+                  <button
+                    ref={actionButtonRef}
+                    onClick={() => setShowActionDropdownDesk((prev) => !prev)}
+                    className="border-color flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-2 text-gray-700 transition hover:bg-gray-100"
                   >
-                    Pending
-                  </li>
-                </ul>
-
-                <div
-                  className={`absolute bottom-[-13px] h-1 bg-orange-500 md:bottom-[-16px] md:ml-0 ${
-                    isResizing ? "" : "transition-all duration-300"
-                  }`}
-                  style={{
-                    left: `${indicatorStyle.left}px`,
-                    width: `${indicatorStyle.width}px`,
-                  }}
-                ></div>
-              </div>
-
-              <div className="fixed right-5 bottom-5 z-51 mt-4 flex gap-3 md:relative md:right-0 md:mt-3">
-                {/* Configure Button */}
-                <button
-                  ref={actionButtonRef}
-                  onClick={() => setShowActionDropdownDesk((prev) => !prev)}
-                  className="hidden cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-2 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-100 md:flex"
-                >
-                  <i className="bx bx-dots-vertical-rounded text-2xl"></i>
-                </button>
-                {/* Desktop search button */}
-                <button
-                  ref={actionButtonRef}
-                  onClick={handleToggleSearch}
-                  className="-ml-1 hidden cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-2 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-100 md:flex"
-                >
-                  <i
-                    className={`bx ${showSearchInput ? "bx-x" : "bx-search-big"} text-2xl`}
-                  ></i>
-                </button>
-                {showActionDropdownDesk && (
-                  <div
-                    ref={actionDropdownRef}
-                    className="border-color animate-dropdown animate-fadein absolute top-12 right-[300px] z-50 w-32 origin-top scale-95 cursor-pointer rounded-md border bg-white p-1 text-gray-700 opacity-0 shadow-lg transition-all duration-200 ease-out"
-                  >
-                    <button
-                      onClick={handleEdit}
-                      className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
+                    <i className="bx bx-dots-vertical-rounded text-2xl"></i>
+                  </button>
+                  {showActionDropdownDesk && (
+                    <div
+                      ref={actionDropdownRef}
+                      className="border-color animate-fadein absolute right-0 z-50 mt-2 w-40 origin-top-right rounded-md border bg-white p-1 text-gray-700 shadow-lg"
                     >
-                      <i className="bx bx-edit-alt text-base"></i>
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSubjectToDelete({
-                          subjectID,
-                          subjectName,
-                          subjectCode,
-                        });
-                        setShowActionDropdownDesk(false);
-                        setShowDeleteModal(true);
-                      }}
-                      className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                    >
-                      <i className="bx bx-trash text-base"></i>
-                      Remove
-                    </button>
-                  </div>
-                )}
-
+                      <button
+                        onClick={() => {
+                          setWorksheetSubject({
+                            subjectID,
+                            subjectName,
+                            subjectCode,
+                            programName,
+                            yearLevel,
+                          });
+                          setIsWorksheetModalOpen(true);
+                          setShowActionDropdownDesk(false);
+                        }}
+                        className="mb-1 flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.25"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="lucide lucide-download-icon lucide-download"
+                        >
+                          <path d="M12 15V3" />
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <path d="m7 10 5 5 5-5" />
+                        </svg>
+                        Worksheet
+                      </button>
+                      <button
+                        onClick={handleEdit}
+                        className="mb-1 flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
+                      >
+                        <i className="bx bx-edit-alt text-base"></i>
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSubjectToDelete({
+                            subjectID,
+                            subjectName,
+                            subjectCode,
+                          });
+                          setShowActionDropdownDesk(false);
+                          setShowDeleteModal(true);
+                        }}
+                        className="mb-1 flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+                      >
+                        <i className="bx bx-trash text-base"></i>
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={handleAssignClick}
-                  className="hidden cursor-pointer items-center gap-2 rounded-lg border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2 md:flex"
+                  className="outfit-500 flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2"
                 >
-                  <i className="bx bx-cog text-lg"></i>
-                  <span className="text-[14px]">Configure</span>
+                  <i className="bx bxs-cog text-xl"></i>
+                  <span className="text-[14px]">Settings</span>
                 </button>
-
-                {/* Preview Button */}
                 <button
-                  onClick={() => alert("Feature is coming in the next update")}
-                  className="hidden cursor-pointer items-center gap-2 rounded-lg border border-b-4 border-orange-600 bg-orange-500 px-4 py-2 text-white transition-all duration-100 hover:bg-orange-600 active:translate-y-[2px] active:border-b-2 md:flex"
+                  onClick={() =>
+                    alert("Exam preview will be available in a future update.")
+                  }
+                  className="outfit-500 flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-600 bg-orange-500 px-4 py-2 text-white transition-all duration-100 hover:bg-orange-600 active:translate-y-[2px] active:border-b-2"
                 >
                   <i className="bx bx-eye-big text-xl"></i>
-                  <span className="text-[14px]">Preview</span>
+                  <span className="outfit text-[14px] font-semibold">
+                    Preview
+                  </span>
                 </button>
+              </div>
+            </div>
+
+            {/* Desktop Tabs Bar (bottom-left of SubjectCard, flush with bottom border) */}
+            <div className="outfit-500 -mt-4 flex w-full justify-start">
+              <div className="relative">
+                {tabs.map((tab, index) => {
+                  const isActive = activeIndex === tab.index;
+                  return (
+                    <button
+                      key={tab.index}
+                      ref={(el) => (tabRefs.current[tab.index] = el)}
+                      onClick={() => setActiveIndex(tab.index)}
+                      className={
+                        "relative mr-3 cursor-pointer px-2 pb-2 text-[14px]" +
+                        (isActive
+                          ? " border-b-3 border-orange-500 text-orange-500"
+                          : " text-gray-500 hover:text-gray-700")
+                      }
+                      style={{
+                        marginRight: index !== tabs.length - 1 ? "0.5rem" : 0,
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
-
-          {showSearchInput && (
-            <div
-              className="flex w-full justify-center px-1 py-2"
-              ref={searchInputRef}
-            >
-              <div
-                className={`w-full transform transition-all duration-300 lg:w-[80%] ${searchAnim}`}
-              >
-                <SearchQuery
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  placeholder="Search questions"
-                />
-              </div>
-            </div>
-          )}
         </>
       )}
 
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className="open-sans lightbox-bg fixed inset-0 z-100 flex items-end justify-center md:hidden"
+          className="outfit lightbox-bg fixed inset-0 z-100 flex items-end justify-center md:hidden"
           onClick={() => setShowDropdown(false)}
         >
           <div
             className="animate-fade-in-up w-full rounded-t-2xl bg-white shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 pt-3 pb-3">
+            <div className="px-4 py-3">
               <h2 className="text-[16px] font-semibold sm:text-[14px]">
                 Select an option
               </h2>
             </div>
-            <div className="h-[0.5px] w-full bg-gray-300" />
+            <div className="bg-color h-[0.5px] w-full" />
             <div className="flex flex-col py-2 text-[16px] sm:text-[14px]">
               <button
-                onClick={handleAssignClick}
-                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100 min-[500px]:hidden"
+                onClick={() => {
+                  setWorksheetSubject({
+                    subjectID,
+                    subjectName,
+                    subjectCode,
+                    programName,
+                    yearLevel,
+                  });
+                  setIsWorksheetModalOpen(true);
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100 sm:hidden"
               >
-                <i className="bx bx-cog text-xl"></i>
-                Configure
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-download-icon lucide-download"
+                >
+                  <path d="M12 15V3" />
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+                Worksheet
               </button>
               <button
                 onClick={handleEdit}
@@ -967,7 +961,7 @@ const SubjectCard = ({
       {editingSubject && (
         <div
           ref={editModalRef} // Attach the ref here
-          className="open-sans bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center"
+          className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center"
         >
           <div className="animate-fade-in-up relative max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
             <div className="border-color flex items-center justify-between border-b px-4 py-2">
@@ -1001,7 +995,7 @@ const SubjectCard = ({
                           subjectName: e.target.value,
                         }))
                       }
-                      className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                      className="peer border-color mt-1 w-full rounded-xl border px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1022,7 +1016,7 @@ const SubjectCard = ({
                           subjectCode: e.target.value,
                         }))
                       }
-                      className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                      className="peer border-color mt-1 w-full rounded-xl border px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                     />
                   </div>
                   <div className="mt-1 text-start text-[11px] text-gray-400">
@@ -1155,6 +1149,15 @@ const SubjectCard = ({
           isLoading={isDeleting}
           showCountdown={true}
           countdownSeconds={6}
+          shiftHintText={undefined}
+        />
+      )}
+
+      {isWorksheetModalOpen && (
+        <PrintExamModal
+          isOpen={isWorksheetModalOpen}
+          onClose={() => setIsWorksheetModalOpen(false)}
+          initialSubject={worksheetSubject}
         />
       )}
     </div>
