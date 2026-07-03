@@ -31,12 +31,12 @@ if [ ! -f .env ]; then
 fi
 
 # Sync runtime secrets and config from Docker env into Laravel's .env file.
-upsert_env_var "APP_KEY" "${APP_KEY:-}" #this is questionable sicne we have already app key in the live environment. Updating and inserting means backend will no longer decrypt anything that was encrypted with the old key. Our data will be affected
+upsert_env_var "APP_KEY" "${APP_KEY:-}" 
 upsert_env_var "JWT_SECRET" "${JWT_SECRET:-}"
-upsert_env_var "CACHE_DRIVER" "${CACHE_DRIVER:-file}" # QUESTIONABLE
+upsert_env_var "CACHE_DRIVER" "${CACHE_DRIVER:-file}" 
 upsert_env_var "CACHE_STORE" "${CACHE_STORE:-file}"
-upsert_env_var "SESSION_DRIVER" "${SESSION_DRIVER:-file}" # Still questionable because we dont know what will be the behavior if this line is changed in the live environment
-upsert_env_var "QUEUE_CONNECTION" "${QUEUE_CONNECTION:-sync}" # I think this is uncessery since we have already it in the live environment 
+upsert_env_var "SESSION_DRIVER" "${SESSION_DRIVER:-file}" 
+upsert_env_var "QUEUE_CONNECTION" "${QUEUE_CONNECTION:-sync}"  
 upsert_env_var "REDIS_CLIENT" "${REDIS_CLIENT:-predis}"
 upsert_env_var "REDIS_HOST" "${REDIS_HOST:-127.0.0.1}"
 upsert_env_var "REDIS_PORT" "${REDIS_PORT:-6379}"
@@ -94,6 +94,6 @@ php artisan cache:clear
 # Skip config:cache here to allow runtime .env changes
 # php artisan config:cache 
 php artisan storage:link || true
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache #this is redundant, we already have it in the backend dockerfile executed
-chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache #this is redundant, we already have it in the backend dockerfile executed
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache 
+chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache 
 exec "$@"
