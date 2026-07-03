@@ -28,6 +28,9 @@ return new class extends Migration
             
             // User who receives the notification
             $table->unsignedBigInteger('user_id');
+
+            // User who created/sent the notification (nullable for system notifications)
+            $table->unsignedBigInteger('sender_id')->nullable();
             
             // Type of notification for frontend styling
             $table->enum('type', [
@@ -57,11 +60,16 @@ return new class extends Migration
             // Timestamps
             $table->timestamps();
             
-            // Foreign key with cascade delete
+            // Foreign keys
             $table->foreign('user_id')
                   ->references('userID')
                   ->on('users')
                   ->onDelete('cascade');
+
+            $table->foreign('sender_id')
+                  ->references('userID')
+                  ->on('users')
+                  ->onDelete('set null');
             
             // Indexes for performance
             $table->index(['user_id', 'is_read'], 'idx_user_read');
