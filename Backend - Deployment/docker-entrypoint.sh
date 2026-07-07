@@ -41,6 +41,18 @@ upsert_env_var "REDIS_CLIENT" "${REDIS_CLIENT:-predis}"
 upsert_env_var "REDIS_HOST" "${REDIS_HOST:-127.0.0.1}"
 upsert_env_var "REDIS_PORT" "${REDIS_PORT:-6379}"
 upsert_env_var "REDIS_PASSWORD" "${REDIS_PASSWORD:-}"
+
+# Sync DB connection settings from Docker env into Laravel's .env file.
+# Without this, a stale DB_* value baked into the image's .env can silently
+# override the correct value set in docker-compose's environment block,
+# since php artisan serve reads .env directly at boot.
+upsert_env_var "DB_CONNECTION" "${DB_CONNECTION:-mysql}"
+upsert_env_var "DB_HOST" "${DB_HOST:-}"
+upsert_env_var "DB_PORT" "${DB_PORT:-}"
+upsert_env_var "DB_DATABASE" "${DB_DATABASE:-}"
+upsert_env_var "DB_USERNAME" "${DB_USERNAME:-}"
+upsert_env_var "DB_PASSWORD" "${DB_PASSWORD:-}"
+
 upsert_env_var "FRONTEND_URL" "${FRONTEND_URL:-}"
 upsert_env_var "GOOGLE_CLIENT_ID" "${GOOGLE_CLIENT_ID:-}"
 upsert_env_var "GOOGLE_CLIENT_SECRET" "${GOOGLE_CLIENT_SECRET:-}"
