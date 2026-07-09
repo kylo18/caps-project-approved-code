@@ -1,183 +1,106 @@
-CAPS Deployment Steps
+CAPS MOBILE LOCAL DEPLOYMENT STEPS
 
-1. Install prerequisites
+PURPOSE:
+This guide shows how to run and test the CAPS mobile app locally during development.
 
-Docker Desktop (with Docker Compose enabled)
-Git
+IMPORTANT NOTE:
+The mobile app itself does not need Docker. Docker is only needed if you want to run the backend, MySQL, and Redis locally.
 
-2. Clone the repo
+1. INSTALL REQUIRED TOOLS
 
-git clone <YOUR_GITHUB_REPO_URL>
-cd CAPS
+- Node.js LTS
+- npm
+- Expo CLI through the project scripts
+- Android Studio or a physical Android device
+- Docker Desktop if you will run the backend locally
 
-3. (Optional) Install VS Code extension: Mobile Preview
+2. OPEN THE MOBILE PROJECT
 
-Lets you preview the UI in phone size.
+    cd FrontendMobile
 
-4. Create docker-compose.yml in the repo root and paste this:
+3. INSTALL DEPENDENCIES
 
-version: '3.8'
+    npm install
 
-    networks:
-    caps_network:
-        driver: bridge
+4. SET THE MOBILE ENVIRONMENT VALUES
 
-    services:
-    backend:
-        build:
-        context: "./Backend - Deployment" 
-        dockerfile: Dockerfile
-        command: php artisan serve --host=0.0.0.0 --port=8000
-        container_name: backend
-        networks:
-        - caps_network
-        ports:
-        - "8000:8000"
-        volumes:
-        # - ./caps-backend:/var/www/html   # <-- still commented
-        - ./docker-data/backend_pictures:/var/www/html/storage/app/public
-        depends_on:
-        - mysql
-        environment:
-        DB_CONNECTION: mysql
-        DB_HOST: mysql
-        DB_PORT: 3306
-        DB_DATABASE: laravel
-        DB_USERNAME: caps_user
-        DB_PASSWORD: password 
+Update `FrontendMobile/.env` before starting the app.
 
-    frontend:
-        build:
-        context: "./Frontend - Deployment"
-        dockerfile: Dockerfile
-        container_name: frontend
-        networks:
-        - caps_network
-        ports:
-        - "80:80"
-        environment:
-        #this should be the same as the backend's .env file
-        - VITE_API_BASE_URL=http://localhost:8000/api
-        depends_on:
-        - backend
+If you are using the local backend:
 
-    mysql:
-        image: mysql:8
-        container_name: mysql
-        restart: always
-        networks:
-        - caps_network
-        ports:
-        - "4406:3306"
-        environment:
-        MYSQL_ROOT_PASSWORD: root
-        MYSQL_DATABASE: laravel
-        MYSQL_USER: caps_user
-        MYSQL_PASSWORD: password 
-        volumes:
-        - ./docker-data/mysql_data:/var/lib/mysql
+    EXPO_PUBLIC_API_URL=http://localhost:8000
+    EXPO_PUBLIC_AI_SERVICE_URL=http://localhost:8000
 
+If you are using the live backend instead:
 
-    phpmyadmin:
-        image: phpmyadmin/phpmyadmin
-        container_name: phpmyadmin
-        restart: always
-        environment:
-        PMA_HOST: mysql
-        PMA_USER: root
-        PMA_PASSWORD: root 
-        ports:
-        - "8080:80"
-        depends_on:
-        - mysql
-        networks:
-        - caps_network
+    EXPO_PUBLIC_API_URL=http://18.142.190.113:82
+    EXPO_PUBLIC_AI_SERVICE_URL=http://18.142.190.113:82
 
-    #volumes:
-    # ./docker-data/mysql_data:/var/lib/mysql:
+5. START THE LOCAL BACKEND IF NEEDED
 
-5. Create Backend - Deployment/.env and paste this:
+If you want the mobile app to connect to your local CAPS backend, start the backend services from the project root:
 
- APP_NAME=CAPS 
-    APP_ENV=local
-    APP_FORCE_HTTPS=true # Force app to be served in https
-    APP_KEY=
-    APP_DEBUG=true
-    APP_URL=http://localhost:8000/api
-    FRONTEND_URL= # added this line to make reset password through email work. Change this with the actual production url
-    APP_VERSION=1.1.0
+    docker compose up -d --build backend mysql redis
 
-    LOG_CHANNEL=stack
-    LOG_DEPRECATIONS_CHANNEL=null
-    LOG_LEVEL=debug
+Then verify the API:
 
-    DB_CONNECTION=mysql
-    DB_HOST=mysql
-    DB_PORT=3306
-    DB_DATABASE=laravel
-    DB_USERNAME=caps_user
-    DB_PASSWORD=password
+    curl http://127.0.0.1:8000/api/app-version
 
-    BROADCAST_DRIVER=log
-    CACHE_DRIVER=file
-    QUEUE_CONNECTION=sync
-    SESSION_DRIVER=database 
-    SESSION_LIFETIME=120
+6. START THE EXPO DEVELOPMENT SERVER
 
-    FILESYSTEM_DISK=local
+    npm start
 
-    # If you're using Laravel Sanctum, set this for CORS
-    SANCTUM_STATEFUL_DOMAINS=caps-test2.coeofjrmsu.com
+This starts Expo Metro in LAN mode.
 
-    # Optional: If sending emails
-    MAIL_MAILER=smtp
-    MAIL_HOST=smtp.gmail.com # modified this line to make reset password through email work
-    MAIL_PORT=587 # modified this line to make reset password through email work
-    MAIL_USERNAME= # modified this line to make reset password through email work. 
-    MAIL_PASSWORD=miafcfzompsbabam # modified this line to make reset password through email work
-    MAIL_ENCRYPTION=tls
-    MAIL_FROM_ADDRESS= # modified this line to make reset password through email work.
-    MAIL_FROM_NAME="${APP_NAME}"
-	
-    GOOGLE_CLIENT_ID=673383194750-ie7pluv4tbnikonna34mb1tp0a5pkgrf.apps.googleusercontent.com
-    GOOGLE_CLIENT_SECRET=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
-    GOOGLE_REDIRECT_URI=https://caps-test2.coeofjrmsu.com/
+7. OPEN THE APP ON A DEVICE
 
-    FACEBOOK_CLIENT_ID=1622011292330005
-    FACEBOOK_CLIENT_SECRET=03acdf01aa92b0a24503378743a08025
-    FACEBOOK_REDIRECT_URI=
+If you want to run the app without building an APK yet, use Expo Go:
 
-6. Create Frontend - Deployment/.env and paste this:
+- Install **Expo Go** on your Android phone from the Play Store
+- Run `npm start`
+- Scan the QR code shown in the terminal or Expo Dev Tools
+- The app will open inside Expo Go through the QR link
 
-# Frontend base config
-VITE_API_BASE_URL=http://localhost:8000/api
+If Expo gives you a direct development link, you can also open that link on the same device or copy it into the browser and launch it through Expo Go.
 
-7. Build and start the containers
+If you want to run it on an emulator instead:
 
-docker compose up -d --build
+    npm run android
 
-8. Generate the Laravel app key
+8. VERIFY THE APP IS CONNECTED
 
-docker compose exec backend php artisan key:generate
+- Open the app
+- Make sure the login screen loads
+- Try logging in with a test account
+- Confirm the app can call the backend API
+- Check that navigation and protected screens load properly
 
-9. Verify DB host matches service name
+9. OPTIONAL: CHECK THE API DIRECTLY
 
-Ensure both .env and docker-compose.yml use:
-DB_HOST=mysql
+If something does not load, test the backend manually:
 
-10. Clear Laravel config cache
+    curl http://localhost:8000/api/health
+    curl http://localhost:8000/api/app-version
 
-docker compose exec backend php artisan config:clear
+10. OPTIONAL: BUILD A RELEASE APK
 
-11. Run migrations 
+If you need a downloadable APK instead of a local Expo session:
 
-docker compose exec backend php artisan migrate
+    node scripts/prepare-android-build.js
+    npx expo prebuild --clean
+    cd android
+    .\gradlew assembleRelease
 
-12. Seed base data
-docker compose exec backend php artisan db:seed
+After the APK is created, copy it to:
 
-13. Open the app
+    Backend - Deployment/public/apk/CAPS.apk
 
-Frontend: http://localhost
-Backend: http://localhost:8000
-phpMyAdmin: http://localhost:8080
+11. QUICK LOCAL DEPLOYMENT CHECKLIST
+
+- Dependencies installed
+- `.env` values set correctly
+- Backend running if local testing is needed
+- Expo Metro started
+- App opens on device or emulator
+- Login works
+- API routes respond successfully
