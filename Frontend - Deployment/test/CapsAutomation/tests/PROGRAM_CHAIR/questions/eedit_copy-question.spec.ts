@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Dean can edit a pending question', async ({ page }) => {
+test('Program chair can copy edit question', async ({ page }) => {
   const copiedQuestion = `Copied-${Date.now()}`;
   await page.goto('https://caps-test.coeofjrmsu.com/');
 
@@ -8,10 +8,10 @@ test('Dean can edit a pending question', async ({ page }) => {
   await page.getByRole('button', { name: 'LOG IN' }).click();
   await page
     .getByRole('textbox', { name: 'e.g. 23-A-' })
-    .fill(process.env.ASSO_DEAN_USERNAME!);
+    .fill(process.env.PROGRAM_CHAIR_USERNAME!);
   await page
     .getByRole('textbox', { name: '••••••••••' })
-    .fill(process.env.ASSO_DEAN_PASSWORD!);
+    .fill(process.env.DEAN_PASSWORD!);
   await page.getByRole('button', { name: 'Login' }).click();
 
   // Close announcement

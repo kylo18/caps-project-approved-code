@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Dean can edit a pending question', async ({ page }) => {
+test('Asso Dean can Remove a pending question', async ({ page }) => {
   await page.goto('https://caps-test.coeofjrmsu.com/');
 
   // Login

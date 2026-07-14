@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Dean can edit a pending question', async ({ page }) => {
+test('Program chair can edit question', async ({ page }) => {
   // Updated Data
   const updatedQuestion = `Modified-${Date.now()}`;
   const updatedOptionA = 'Test';
@@ -13,7 +13,7 @@ test('Dean can edit a pending question', async ({ page }) => {
   await page.getByRole('button', { name: 'LOG IN' }).click();
   await page
     .getByRole('textbox', { name: 'e.g. 23-A-' })
-    .fill(process.env.FACULTY_USERNAME!);
+    .fill(process.env.PROGRAM_CHAIR_USERNAME!);
   await page
     .getByRole('textbox', { name: '••••••••••' })
     .fill(process.env.DEAN_PASSWORD!);
@@ -79,6 +79,6 @@ await expect(
 await page.waitForTimeout(3000);
 
 await expect(
-    page.getByText(/Question is now pending for approval!/i)
+    page.getByText(/Question edited successfully! now waiting for approval/i)
   ).toBeVisible();
 });

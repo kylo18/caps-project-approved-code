@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test('Dean can edit a pending question', async ({ page }) => {
-  const copiedQuestion = `Copied-${Date.now()}`;
+test('Program chair can undo setup practice exam', async ({ page }) => {
+  const numberOfQuestions = '2';
   await page.goto('https://caps-test.coeofjrmsu.com/');
 
   // Login
@@ -25,27 +25,24 @@ test('Dean can edit a pending question', async ({ page }) => {
   await page.getByRole('button', { name: /Computer Engineering/i }).click();
   await page.getByText('Test Subject').click();
   await page.getByRole('button', { name: /Manage Questions/i }).click();
-  // Open Practice Questions
-  await page.getByRole('button', { name: 'Qualifying Exam' }).click();
 
-  // Copy Question
-  await page.getByRole('button', { name: /Copy/i }).nth(1).click();
+  // Open Settings
+  await page.getByRole('button', { name: /Settings/i }).click();
 
-  // Change Category
-  await page.getByRole('button', { name: 'Qualifying Exam ' }).click();
-  await page.getByText('Practice', { exact: true }).click();
+  // Enable Question Limit
+  await page.locator('div:nth-child(4) > .relative > .peer.h-6').click();
 
-  // Change Title
-  await page.locator('.overflow-wrap-anywhere').fill(copiedQuestion);
+   // Enable Randomize Questions
+  await page.locator('.mb-6 > .relative > .peer.h-6').first().click();
 
-  // Copy
-  await page.getByRole('button', { name: /^Copy$/ }).click();
+  // Save
+  await page.getByRole('button', { name: /Save Changes/i }).click();
 
-  // Wait for copy to finish
+  // Wait for save to finish
   await page.waitForTimeout(3000);
 
-  // Verify
+  // Verify Success
   await expect(
-    page.getByText(/Question copied successfully! now waiting for approval/i)
+    page.getByText(/Exam successfully configured!/i)
   ).toBeVisible();
-  });
+});

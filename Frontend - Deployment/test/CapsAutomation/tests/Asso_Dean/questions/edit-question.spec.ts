@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Dean can edit a pending question', async ({ page }) => {
+test('Asso Dean can edit a pending question', async ({ page }) => {
   // Updated Data
   const updatedQuestion = `Modified-${Date.now()}`;
   const updatedOptionA = 'Test';

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Dean can add a multiple-choice question', async ({ page }) => {
+test('Program chair can add a multiple-choice question', async ({ page }) => {
   // Test Data
   const subjectName = 'Test Subject';
   const questionTitle = `Question-${Date.now()}`;

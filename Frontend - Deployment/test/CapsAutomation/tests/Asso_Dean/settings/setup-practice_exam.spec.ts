@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Dean can edit a pending question', async ({ page }) => {
+test('Asso Dean can setup practice exam', async ({ page }) => {
   const numberOfQuestions = '2';
   await page.goto('https://caps-test.coeofjrmsu.com/');
 
@@ -8,10 +8,10 @@ test('Dean can edit a pending question', async ({ page }) => {
   await page.getByRole('button', { name: 'LOG IN' }).click();
   await page
     .getByRole('textbox', { name: 'e.g. 23-A-' })
-    .fill(process.env.ASSO_DEAN_USERNAME!);
+    .fill(process.env.PROGRAM_CHAIR_USERNAME!);
   await page
     .getByRole('textbox', { name: '••••••••••' })
-    .fill(process.env.ASSO_DEAN_PASSWORD!);
+    .fill(process.env.DEAN_PASSWORD!);
   await page.getByRole('button', { name: 'Login' }).click();
 
   // Close announcement
@@ -31,10 +31,22 @@ test('Dean can edit a pending question', async ({ page }) => {
 
   // Enable Randomize Questions
   await page.locator('.mb-6 > .relative > .peer.h-6').first().click();
-
+ 
   // Change Coverage
+ const examButton = page.getByRole('button');
+
+if (await page.getByRole('button', { name: 'Midterm ' }).isVisible()) {
   await page.getByRole('button', { name: 'Midterm ' }).click();
   await page.getByText('Full Coverage').click();
+
+} else if (await page.getByRole('button', { name: 'Full Coverage ' }).isVisible()) {
+  await page.getByRole('button', { name: 'Full Coverage ' }).click();
+  await page.getByText('Finals', { exact: true }).click();
+
+} else if (await page.getByRole('button', { name: 'Finals ' }).isVisible()) {
+  await page.getByRole('button', { name: 'Finals ' }).click();
+  await page.getByText('Midterm', { exact: true }).click();
+}
 
   // Enable Question Limit
   await page.locator('div:nth-child(4) > .relative > .peer.h-6').click();
