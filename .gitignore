@@ -141,3 +141,4 @@ TestEnvironmentResults/BugRootCauseAnalysis
 
 
 *.yml
+Frontend - Deployment/test/playwright.config.ts
