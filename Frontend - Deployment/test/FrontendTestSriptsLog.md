@@ -21,17 +21,13 @@
     - Edit Question  
     - Remove Question
     - Approve Question
-    - Set up exam for practice question
-    - Add subject
     - Copy & Edit Question to another tab
 
 # FACULTY TEST
+    - Assign subject
     - Add Question
     - Edit Question  
     - Remove Question
-    - Approve Question
-    - Set up exam for practice question
-    - Add subject
     - Copy & Edit Question to another tab
 
 # STUDENT TEST
