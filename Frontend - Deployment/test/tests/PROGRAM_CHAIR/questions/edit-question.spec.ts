@@ -36,11 +36,11 @@ test('Program chair can edit question', async ({ page }) => {
 
   // Upload Question Image
   await page.getByTitle('Add image').first().click();
-  await page.locator('.flex.flex-col > .hidden').setInputFiles('Untitled design.png');
+  await page.locator('.flex.flex-col > .hidden').setInputFiles('assets/images/Untitled design.png');
   await page.getByRole('button', { name: 'Apply Crop' }).click();
 
   await page.getByTitle('Add image').nth(1).click();
-  await page.locator('.flex.flex-col.items-center > .hidden').setInputFiles('7u7caf.png');
+  await page.locator('.flex.flex-col.items-center > .hidden').setInputFiles('assets/images/7u7caf.png');
   await page.getByRole('button', { name: 'Apply Crop' }).click();
 
   // Update Question Title
