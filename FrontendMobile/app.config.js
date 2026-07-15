@@ -46,7 +46,7 @@ export default {
         backgroundColor: "#FE6902"
       },
       package: "com.caps.mobile",
-      googleServicesFile: "./google-services.json",
+     //  googleServicesFile: "./google-services.json",
       versionCode: ANDROID_VERSION_CODE,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
