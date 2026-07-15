@@ -232,6 +232,10 @@ class SocialAuthController extends Controller
             // THIRD: Check if user is approved/registered
             $pendingStatusId = \DB::table('statuses')->where('name', 'pending')->first()->id ?? null;
             $registeredStatusId = \DB::table('statuses')->where('name', 'registered')->first()->id ?? null;
+            // Legacy accounts approved before the social-auth feature carry the old
+            // "approved" status instead of "registered". Treat both as valid good-statuses.
+            $approvedStatusId = \DB::table('statuses')->where('name', 'approved')->first()->id ?? null;
+            $validStatusIds = array_filter([$registeredStatusId, $approvedStatusId]);
 
             if ($user->status_id === $pendingStatusId) {
                 Log::warning('Social login blocked: Account is pending approval.', [
@@ -248,7 +252,7 @@ class SocialAuthController extends Controller
                 );
             }
 
-            if ($user->status_id !== $registeredStatusId) {
+            if (!in_array($user->status_id, $validStatusIds, true)) {
                 Log::warning('Social login blocked: Account not approved.', [
                     'provider' => $provider,
                     'userID' => $user->userID,
