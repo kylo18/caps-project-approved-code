@@ -48,7 +48,7 @@
 7. Wait for the commands to run in step 6. After running it navigate to the android directory and run the this command
 
     - 'cd android'
-    - './gradlew assembleRelease'
+    - 'nohup ./gradlew assembleRelease > build.log 2>&1 &'  
 
 8. Copy the Apk to backend
 
