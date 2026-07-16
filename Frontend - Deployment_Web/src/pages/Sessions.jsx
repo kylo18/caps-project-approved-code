@@ -418,9 +418,13 @@ const Sessions = () => {
             ) : (
               <>
                 {/* Mobile expandable list - picture, name, status, arrow */}
-                <div className="outfit-400 space-y-0 overflow-hidden rounded-xl border border-gray-200 bg-white xl:hidden">
-                  {filteredQuizzes.map((quiz) => {
-                    const quizId = quiz.classPersonalQuizID;
+                <div className="outfit-400 space-y-3 overflow-hidden rounded-xl border border-gray-200 bg-white xl:hidden">
+                  {filteredQuizzes.map((quiz, index) => {
+                    const quizId =
+                      quiz.classPersonalQuizID ??
+                      quiz.quiz?.personalQuizID ??
+                      quiz.quiz?.id ??
+                      index;
                     const isExpanded = expandedSessionId === quizId;
 
                     if (isFaculty) {
@@ -486,6 +490,11 @@ const Sessions = () => {
                                 {quiz.class?.className || "—"}
                               </div>
                             </div>
+                            {statusBadge && (
+                              <div className="flex-shrink-0">
+                                {statusBadge}
+                              </div>
+                            )}
                             <i
                               className={`bx bx-chevron-down ml-auto flex-shrink-0 text-xl text-gray-400 transition-transform ${
                                 isExpanded ? "rotate-180" : ""
@@ -664,7 +673,7 @@ const Sessions = () => {
                               {quiz.quiz?.subject?.subjectName || "Custom Quiz"}
                             </div>
                           </div>
-                          {activeTab === "all" && (
+                          {statusBadge && (
                             <div className="ml-auto flex-shrink-0">
                               {statusBadge}
                             </div>
@@ -780,10 +789,10 @@ const Sessions = () => {
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="lucide lucide-calendar-clock-icon lucide-calendar-clock"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="lucide lucide-calendar-clock-icon lucide-calendar-clock"
                                   >
                                     <path d="M16 14v2.2l1.6 1" />
                                     <path d="M16 2v4" />

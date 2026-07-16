@@ -27,6 +27,5 @@ class RouteServiceProvider extends ServiceProvider
         $this->app->singleton('role', function ($app) {
             return new RoleMiddleware();
         });
-        $this->loadRoutesFrom(base_path('routes/api.php'));
     }
 }

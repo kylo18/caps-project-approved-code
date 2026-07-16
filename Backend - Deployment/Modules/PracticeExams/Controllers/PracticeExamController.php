@@ -13,14 +13,18 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Modules\PracticeExams\Models\PracticeExamResult;
+use Modules\PracticeExams\Models\PracticeExamAnswer;
+use Modules\PracticeExams\Models\Exam;
+use Modules\Analytics\Models\ExamAttempt;
+use Modules\Analytics\Models\ExamResult;
+use Modules\Analytics\Controllers\AnalyticsController;
 use Modules\Questions\Models\Status;
 use Modules\Questions\Models\Difficulty;
 use Modules\PracticeExams\Models\PersonalExamSetting;
 use Modules\PracticeExams\Models\ExamAttempt;
 use Modules\Users\Models\StudentTeacherEnrollment;
 use Modules\Users\Models\User;
-use Modules\Choices\Models\Choice;
-use App\Http\Resources\ExamQuestionResource;
+use Modules\Leaderboard\Models\Leaderboard;
 
 class PracticeExamController extends Controller
 {
@@ -38,11 +42,11 @@ class PracticeExamController extends Controller
             }
 
             // Fetch subject (must be assigned to the user's program or general subject)
-            $subject = Subject::where(function($query) use ($user, $subjectID) {
+            $subject = Subject::where(function ($query) use ($user, $subjectID) {
                 $query->where('subjectID', $subjectID)
-                    ->where(function($q) use ($user) {
+                    ->where(function ($q) use ($user) {
                         $q->where('programID', $user->programID)
-                          ->orWhere('programID', 6); // 6 is for general subjects
+                            ->orWhere('programID', 6); // 6 is for general subjects
                     });
             })->first();
 
@@ -65,15 +69,17 @@ class PracticeExamController extends Controller
             $difficulties = Difficulty::all()->pluck('id', 'name');
 
             // Fetch and group questions by difficulty
-            $questions = Question::with(['choices' => function($query) {
-                $query->orderBy('position', 'asc');
-            }])
+            $questions = Question::with([
+                'choices' => function ($query) {
+                    $query->orderBy('position', 'asc');
+                }
+            ])
                 ->where('subjectID', $subjectID)
                 ->where('purpose_id', 2) // Changed to 2 for practiceQuestions
-                ->whereHas('status', function($query) {
+                ->whereHas('status', function ($query) {
                     $query->where('name', '!=', 'pending');
                 })
-                ->when(!empty($settings->coverage), function($query) use ($settings) {
+                ->when(!empty($settings->coverage), function ($query) use ($settings) {
                     $coverage = strtolower(trim($settings->coverage));
                     if ($coverage === 'full') {
                         return $query->whereIn('coverage_id', [1, 2]); // 1 for midterm, 2 for finals
@@ -87,8 +93,8 @@ class PracticeExamController extends Controller
             Log::info('Questions retrieved:', ['count' => $questions->count()]);
 
             $grouped = [
-                $difficulties['easy'] => [], 
-                $difficulties['moderate'] => [], 
+                $difficulties['easy'] => [],
+                $difficulties['moderate'] => [],
                 $difficulties['hard'] => []
             ];
 
@@ -145,7 +151,7 @@ class PracticeExamController extends Controller
                         if ($regularChoices->where('isCorrect', false)->count() < 4) {
                             continue;
                         }
-                        
+
                         try {
                             // Take 4 incorrect regular choices
                             $finalRegularChoices = $regularChoices->where('isCorrect', false)
@@ -162,7 +168,7 @@ class PracticeExamController extends Controller
                             Log::error("Choice processing failed (Question ID: {$q->questionID}): " . $e->getMessage());
                             continue;
                         }
-                    } 
+                    }
                     // For questions where a regular choice is correct
                     else {
                         // Ensure one correct and at least three incorrect choices
@@ -228,29 +234,34 @@ class PracticeExamController extends Controller
                 }
             }
 
-            // Persist a server-authoritative attempt: the issued question set,
-            // the server-computed denominator, and the time window. Grading and
-            // expiry are enforced against THIS row at submission time, so the
-            // client can no longer dictate the question list, score, or clock.
-            $questionIDs = array_map(fn ($q) => $q['questionID'], $selectedQuestions);
-            $enableTimer = (bool) $settings->enableTimer;
+            // ── Create ExamAttempt record to link Practice Exam with Analytics ──
+            // Find or create an exam for practice exams of this subject
+            $exam = Exam::firstOrCreate(
+                ['subject_id' => $subjectID, 'title' => "Practice Exam — {$subject->subjectName}"],
+                [
+                    'description' => "Auto-generated practice exam for {$subject->subjectName}",
+                    'total_items' => $targetItems,
+                    'status' => 'active',
+                ]
+            );
 
-            $attempt = ExamAttempt::create([
-                'userID'       => $user->userID,
-                'subjectID'    => $subject->subjectID,
-                'teacher_id'   => null,
-                'type'         => 'practice',
-                'question_ids' => $questionIDs,
-                'total_points' => $totalPoints,
-                'started_at'   => now(),
-                'expires_at'   => $enableTimer ? now()->addMinutes((int) $settings->duration_minutes) : null,
+            // Determine attempt_number for this user + exam
+            $attemptNumber = ExamAttempt::where('user_id', $user->userID)
+                ->where('exam_id', $exam->id)
+                ->count() + 1;
+
+            $examAttempt = ExamAttempt::create([
+                'user_id' => $user->userID,
+                'exam_id' => $exam->id,
+                'attempt_number' => $attemptNumber,
+                'started_at' => now(),
+                'status' => 'in_progress',
             ]);
 
             return response()->json([
                 'message' => 'Practice exam generated successfully.',
-                'attemptId' => $attempt->id,
-                // Resource strips isCorrect — the answer key is never shipped.
-                'questions' => ExamQuestionResource::collection($selectedQuestions),
+                'attempt_id' => $examAttempt->id,
+                'questions' => $selectedQuestions,
                 'totalItems' => $totalItems,
                 'totalPoints' => $totalPoints,
                 'enableTimer' => $enableTimer,
@@ -309,16 +320,18 @@ class PracticeExamController extends Controller
             $difficulties = Difficulty::all()->pluck('id', 'name');
 
             // Fetch and group questions by difficulty
-            $questions = Question::with(['choices' => function($query) {
-                $query->orderBy('position', 'asc');
-            }])
+            $questions = Question::with([
+                'choices' => function ($query) {
+                    $query->orderBy('position', 'asc');
+                }
+            ])
                 ->where('subjectID', $subjectID)
                 ->where('purpose_id', 3) // Personal questions
                 ->where('createdBy', $teacherID)
-                ->whereHas('status', function($query) {
+                ->whereHas('status', function ($query) {
                     $query->where('name', '!=', 'pending');
                 })
-                ->when(!empty($settings->coverage), function($query) use ($settings) {
+                ->when(!empty($settings->coverage), function ($query) use ($settings) {
                     $coverage = strtolower(trim($settings->coverage));
                     if ($coverage === 'full') {
                         return $query->whereIn('coverage_id', [1, 2]);
@@ -524,12 +537,15 @@ class PracticeExamController extends Controller
             $difficulties = Difficulty::all()->pluck('id', 'name');
 
             // Build base query for questions
-            $questionQuery = Question::with(['choices' => function($query) {
-                $query->orderBy('position', 'asc');
-            }, 'user'])
+            $questionQuery = Question::with([
+                'choices' => function ($query) {
+                    $query->orderBy('position', 'asc');
+                },
+                'user'
+            ])
                 ->where('subjectID', $subjectID)
                 ->where('purpose_id', 2)
-                ->whereHas('status', function($query) {
+                ->whereHas('status', function ($query) {
                     $query->where('name', '!=', 'pending');
                 });
 
@@ -546,14 +562,14 @@ class PracticeExamController extends Controller
             // Role-based filtering
             switch ($user->roleID) {
                 case 5: // Associate Dean
-                    $questionQuery->whereHas('user', function($q) use ($user) {
+                    $questionQuery->whereHas('user', function ($q) use ($user) {
                         $q->where('campusID', $user->campusID);
                     });
                     break;
                 case 3: // Program Chair
-                    $questionQuery->whereHas('user', function($q) use ($user) {
+                    $questionQuery->whereHas('user', function ($q) use ($user) {
                         $q->where('campusID', $user->campusID)
-                          ->where('programID', $user->programID);
+                            ->where('programID', $user->programID);
                     });
                     break;
                 case 2: // Faculty
@@ -561,10 +577,10 @@ class PracticeExamController extends Controller
                     break;
                 case 1: // Student
                     // Only allow questions for their program or general (programID == user.programID or programID == 6)
-                    $questionQuery->whereHas('user', function($q) use ($user) {
-                        $q->where(function($subQ) use ($user) {
+                    $questionQuery->whereHas('user', function ($q) use ($user) {
+                        $q->where(function ($subQ) use ($user) {
                             $subQ->where('programID', $user->programID)
-                                 ->orWhere('programID', 6);
+                                ->orWhere('programID', 6);
                         });
                     });
                     break;
@@ -789,44 +805,49 @@ class PracticeExamController extends Controller
         }
     }
 
-    /**
-     * Grade an attempt server-side against its immutable issued question set.
-     *
-     * Client-supplied scores are ignored; answers for questions that were not
-     * issued in this attempt are discarded; a selected choice that does not
-     * belong to its question is treated as unanswered. Correctness derives
-     * solely from choices.isCorrect. Returns the score block, a per-question
-     * review payload (including the correct answer — safe post-submission), and
-     * the normalized answers to persist.
-     */
-    private function gradeAttempt(ExamAttempt $attempt, $clientAnswers): array
-    {
-        $questionIDs = $attempt->question_ids ?? [];
+        $validated = $request->validate([
+            'attempt_id' => 'nullable|exists:exam_attempts,id',
+            'subjectID' => 'required|exists:subjects,subjectID',
+            'answers' => 'required|array',
+            'answers.*.questionID' => 'required|exists:questions,questionID',
+            'answers.*.selectedChoiceID' => 'nullable|exists:choices,choiceID',
+            'time_taken_seconds' => 'nullable|integer|min:0',
+        ]);
 
-        // Eager-load the issued questions + their choices once (avoids N+1).
-        $questions = Question::with('choices')
-            ->whereIn('questionID', $questionIDs)
-            ->get()
-            ->keyBy('questionID');
+        $attemptId = $validated['attempt_id'] ?? null;
 
-        // Submitted selections keyed by questionID (defensive against duplicates).
-        $submitted = collect($clientAnswers)
-            ->filter(fn ($a) => isset($a['questionID']))
-            ->keyBy('questionID');
+        // Auto-create attempt if frontend didn't send one
+        if (!$attemptId) {
+            $startedAt = now();
+            $timeTaken = $validated['time_taken_seconds'] ?? null;
+            if ($timeTaken !== null && $timeTaken > 0) {
+                $startedAt = now()->subSeconds($timeTaken);
+            }
 
+            $exam = \Modules\PracticeExams\Models\Exam::firstOrCreate(
+                ['subject_id' => $validated['subjectID']],
+                ['title' => 'Practice Exam', 'total_items' => 0, 'status' => 'active']
+            );
+            $newAttempt = ExamAttempt::create([
+                'user_id'        => $user->userID,
+                'exam_id'        => $exam->id,
+                'attempt_number' => ExamAttempt::where('user_id', $user->userID)->where('exam_id', $exam->id)->count() + 1,
+                'started_at'     => $startedAt,
+                'finished_at'    => now(),
+                'status'         => 'completed',
+            ]);
+            $attemptId = $newAttempt->id;
+        }
+
+        $answers = collect($validated['answers']);
         $totalPoints = 0;
         $earnedPoints = 0;
         $results = [];
-        $answersToStore = [];
+        $examResultsData = [];
 
-        // Iterate the AUTHORITATIVE issued set — never the client's list.
-        foreach ($questionIDs as $questionID) {
-            $question = $questions->get($questionID);
-            if (!$question) {
-                continue; // question removed since issuance; skip safely
-            }
-
-            $questionScore = (int) ($question->score ?? 1);
+        foreach ($answers as $answer) {
+            $question = Question::with(['choices', 'coverage', 'difficulty'])->find($answer['questionID']);
+            $questionScore = $question->score ?? 1;
             $totalPoints += $questionScore;
 
             $selectedChoiceID = $submitted->has($questionID)
@@ -845,24 +866,97 @@ class PracticeExamController extends Controller
                 $earnedPoints += $questionScore;
             }
 
+            // Map question data for exam_results table (analytics pipeline)
+            if ($attemptId && $question->coverage) {
+                $difficultyId = $question->difficulty_id ?? 2; // 2 = moderate default
+                $examResultsData[] = [
+                    'attempt_id' => $attemptId,
+                    'question_id' => $question->questionID,
+                    'topic_id' => $question->coverage->id,
+                    'subject_id' => $question->subjectID,
+                    'difficulty_id' => $difficultyId,
+                    'is_correct' => $isCorrect,
+                    'is_skipped' => is_null($answer['selectedChoiceID'] ?? null),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
             $results[] = [
                 'questionID'     => $question->questionID,
                 'isCorrect'      => $isCorrect,
                 'pointsEarned'   => $isCorrect ? $questionScore : 0,
                 'pointsPossible' => $questionScore,
-                'selectedChoice' => $this->formatReviewChoice($selectedChoice),
-                'correctChoice'  => $this->formatReviewChoice($correctChoice),
-            ];
-
-            $answersToStore[] = [
-                'questionID'       => $question->questionID,
-                'selectedChoiceID' => $selectedChoice?->choiceID,
+                'selectedChoiceID' => $answer['selectedChoiceID'] ?? null,
             ];
         }
 
         $percentage = round(($earnedPoints / max(1, $totalPoints)) * 100, 2);
 
-        return [
+        // ── Save to practice_exam_results (existing behavior) ──
+        $examResult = PracticeExamResult::create([
+            'attempt_id' => $attemptId,
+            'userID' => $user->userID,
+            'subjectID' => $validated['subjectID'],
+            'totalPoints' => $totalPoints,
+            'earnedPoints' => $earnedPoints,
+            'percentage' => round($percentage, 2),
+        ]);
+
+        // Save individual question answers for practice exam tracking
+        $answersData = [];
+        foreach ($results as $res) {
+            $answersData[] = [
+                'result_id' => $examResult->resultID,
+                'user_id' => $user->userID,
+                'question_id' => $res['questionID'],
+                'selected_choice_id' => $res['selectedChoiceID'],
+                'is_correct' => $res['isCorrect'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        if (!empty($answersData)) {
+            \Illuminate\Support\Facades\DB::table('practice_exam_answers')->insert($answersData);
+        }
+
+        // ── Save to exam_results (analytics pipeline) ──
+        if ($attemptId && !empty($examResultsData)) {
+            \Illuminate\Support\Facades\DB::table('exam_results')->insert($examResultsData);
+
+            // Update exam_attempt to completed
+            $examAttempt = ExamAttempt::find($attemptId);
+            if ($examAttempt) {
+                $examAttempt->update([
+                    'finished_at' => now(),
+                    'status' => 'completed',
+                ]);
+
+                // Trigger analytics computation (computeScore populates exam_analytics, exam_topic_analytics, exam_difficulty_analytics)
+                (new AnalyticsController())->computeScore($attemptId);
+            }
+        }
+
+        // Update leaderboard with exam result
+        Leaderboard::updateOrCreateRecord($user->userID, $validated['subjectID'], round($percentage, 2));
+
+        // Trigger real-time Redis leaderboard update
+        event(new \App\Events\ExamResultUpdated(
+            $user->userID,
+            $earnedPoints, // Use points instead of percentage for ranking
+            now(),
+            'global',
+            null,
+            $user->programID
+        ));
+
+        // Invalidate analytics filter cache
+        app(\App\Services\StudentAnalyticsFilteringService::class)->invalidateUserCache($user->userID);
+
+        return response()->json([
+            'message' => 'Exam submitted successfully.',
+            'resultId' => $examResult->resultID,
+            'attempt_id' => $attemptId,
             'score' => [
                 'totalPoints'  => $totalPoints,
                 'earnedPoints' => $earnedPoints,
@@ -975,6 +1069,9 @@ class PracticeExamController extends Controller
             'earnedPoints' => $earnedPoints,
             'percentage' => round($percentage, 2),
         ]);
+        
+        // Invalidate analytics filter cache
+        app(\App\Services\StudentAnalyticsFilteringService::class)->invalidateUserCache($user->id);
 
         return response()->json([
             'message' => 'Personal exam submitted successfully.',
@@ -998,21 +1095,54 @@ class PracticeExamController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        $history = PracticeExamResult::with('subject')
+        // Get student record (student_quiz_results uses students.id, not userID)
+        $student = \Modules\Users\Models\Student::where('userCode', $user->userCode)->first();
+
+        // Practice exam history
+        $practiceHistory = PracticeExamResult::with('subject')
             ->where('userID', $user->userID)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($record) {
                 return [
-                    'resultID' => $record->resultID,
-                    'subjectID' => $record->subjectID,
+                    'resultID'    => $record->resultID,
+                    'subjectID'   => $record->subjectID,
                     'subjectName' => $record->subject->subjectName ?? 'Unknown Subject',
                     'totalPoints' => $record->totalPoints,
-                    'earnedPoints' => $record->earnedPoints,
-                    'percentage' => $record->percentage,
-                    'created_at' => $record->created_at,
+                    'earnedPoints'=> $record->earnedPoints,
+                    'percentage'  => $record->percentage,
+                    'type'        => 'practice',
+                    'created_at'  => $record->created_at,
                 ];
             });
+
+        // Quiz history (only if student record exists)
+        $quizHistory = collect();
+        if ($student) {
+            $quizHistory = \Modules\PersonalExams\Models\StudentQuizResult::with([
+                    'classQuizAssignment.personalQuiz'
+                ])
+                ->where('studentID', $student->id)
+                ->orderBy('submitted_at', 'desc')
+                ->get()
+                ->map(function ($record) {
+                    return [
+                        'resultID'    => 'quiz_' . $record->id,
+                        'subjectID'   => null,
+                        'subjectName' => $record->classQuizAssignment->personalQuiz->title ?? 'Quiz',
+                        'totalPoints' => $record->total_score,
+                        'earnedPoints'=> $record->score,
+                        'percentage'  => $record->percentage,
+                        'type'        => 'quiz',
+                        'created_at'  => $record->submitted_at ?? $record->created_at,
+                    ];
+                });
+        }
+
+        // Merge and sort by date descending
+        $history = $practiceHistory->concat($quizHistory)
+            ->sortByDesc('created_at')
+            ->values();
 
         return response()->json([
             'message' => 'History retrieved successfully.',
@@ -1021,110 +1151,115 @@ class PracticeExamController extends Controller
     }
 
     /**
-     * Get all exam results for the authenticated student for a given subject,
-     * including each score, average score, date/time, their name, and their program.
+     * Get detailed result by ID with questions and answers
      */
-    public function subjectExamResults(Request $request, $subjectID)
+    public function getResultDetail($resultID)
     {
-        $authUser = Auth::user();
-        if (!$authUser) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
-        }
+        $user = Auth::user();
 
-        $query = PracticeExamResult::with(['subject', 'user.program'])
-            ->where('subjectID', $subjectID);
-
-        // Authorization (anti-IDOR): students may only see their OWN results for
-        // the subject; faculty/chair/dean may see all (PracticeExamResultPolicy).
-        if ((int) $authUser->roleID === 1) {
-            $query->where('userID', $authUser->userID);
-        } elseif (Gate::forUser($authUser)->denies('viewAny', PracticeExamResult::class)) {
+        if ($user->roleID !== 1) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        // Fetch results for the given subject, with user and program info
-        $results = $query
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $result = PracticeExamResult::with(['subject', 'answers.question.choices', 'answers.selectedChoice'])
+            ->where('resultID', $resultID)
+            ->where('userID', $user->userID)
+            ->first();
 
-        // Map results to include student-specific info
-        $history = $results->map(function ($record) {
-            $user = $record->user;
-            return [
-                'resultID' => $record->resultID,
-                'subjectID' => $record->subjectID,
-                'subjectName' => $record->subject->subjectName ?? 'Unknown Subject',
-                'totalPoints' => $record->totalPoints,
-                'earnedPoints' => $record->earnedPoints,
-                'percentage' => $record->percentage,
-                'created_at' => $record->created_at,
-                'studentName' => $user ? ($user->firstName . ' ' . $user->lastName) : 'Unknown Student',
-                'program' => $user ? optional($user->program)->programName : null,
-            ];
-        });
-
-        // Calculate the overall average score for the subject
-        $averageScore = $results->avg('percentage');
-
-        return response()->json([
-            'message' => 'All exam results for subject retrieved successfully.',
-            'history' => $history,
-            'averageScore' => round($averageScore, 2),
-        ]);
-    }
-    /**
-     * Get all exam results for all students (not filtered by subject).
-     */
-
-    public function getAllExamResults(Request $request)
-    {
-        try {
-            $authUser = Auth::user();
-            // Function-level authorization: this cross-student view is for
-            // faculty/chair/dean only — students must use their own history().
-            if (!$authUser || Gate::forUser($authUser)->denies('viewAny', PracticeExamResult::class)) {
-                return response()->json(['message' => 'Unauthorized.'], 403);
-            }
-
-            $results = PracticeExamResult::all();
-            return response()->json([
-                'message' => 'All exam results for all students retrieved successfully.',
-                'results' => $results,
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('getAllExamResults error: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'An error occurred while fetching all student exam results.',
-            ], 500);
+        if (!$result) {
+            return response()->json(['message' => 'Result not found.'], 404);
         }
-    }
-    /**
-     * Leaderboard: Returns students' average exam percentages for a subject, sorted highest to lowest.
-     * Includes student name, program, and average score.
-     */
-    public function leaderboard(Request $request, $subjectID)
-    {
-        // Get all students who took the exam for this subject
-        $results = PracticeExamResult::with('user.program')
-            ->where('subjectID', $subjectID)
-            ->get();
 
-        // Group by user and calculate average
-        $leaderboard = $results->groupBy('userID')->map(function($records, $userID) {
-            $user = $records->first()->user;
-            $average = $records->avg('percentage');
-            return [
-                'userID' => $userID,
-                'studentName' => $user ? ($user->firstName . ' ' . $user->lastName) : 'Unknown',
-                'program' => optional($user->program)->programName,
-                'averageScore' => round($average, 2),
-                'attempts' => $records->count(),
-            ];
-        })->values()->sortByDesc('averageScore')->values();
+        // Format the result data
+        $formattedResult = [
+            'resultID' => $result->resultID,
+            'subjectID' => $result->subjectID,
+            'subjectName' => $result->subject->subjectName ?? 'Unknown Subject',
+            'totalPoints' => $result->totalPoints,
+            'earnedPoints' => $result->earnedPoints,
+            'percentage' => $result->percentage,
+            'created_at' => $result->created_at,
+            'score' => [
+                'earnedPoints' => $result->earnedPoints,
+                'totalPoints' => $result->totalPoints,
+                'percentage' => $result->percentage,
+            ],
+            'results' => $result->answers->map(function ($answer) {
+                // Decrypt question text
+                $questionText = $answer->question->questionText;
+                try {
+                    $questionText = Crypt::decryptString($answer->question->questionText);
+                } catch (\Exception $e) {
+                    // If decryption fails, use as-is (might be plain text)
+                }
+
+                // Decrypt question image if exists
+                $questionImage = null;
+                if ($answer->question->image) {
+                    if (filter_var($answer->question->image, FILTER_VALIDATE_URL)) {
+                        $questionImage = $answer->question->image;
+                    } elseif (Storage::disk('public')->exists($answer->question->image)) {
+                        $questionImage = Storage::disk('public')->url($answer->question->image);
+                    }
+                }
+
+                return [
+                    'questionID' => $answer->question->questionID,
+                    'questionText' => $questionText,
+                    'questionImage' => $questionImage,
+                    'isCorrect' => $answer->is_correct,
+                    'points' => $answer->question->points,
+                    'choices' => $answer->question->choices->map(function ($choice) {
+                        // Decrypt choice text
+                        $choiceText = $choice->choiceText;
+                        if ($choice->choiceText) {
+                            try {
+                                $choiceText = Crypt::decryptString($choice->choiceText);
+                            } catch (\Exception $e) {
+                                // If decryption fails, use as-is
+                            }
+                        }
+
+                        // Handle choice image
+                        $choiceImage = null;
+                        if ($choice->image) {
+                            if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
+                                $choiceImage = $choice->image;
+                            } elseif (Storage::disk('public')->exists($choice->image)) {
+                                $choiceImage = Storage::disk('public')->url($choice->image);
+                            }
+                        }
+
+                        return [
+                            'choiceID' => $choice->choiceID,
+                            'choiceText' => $choiceText,
+                            'choiceImage' => $choiceImage,
+                            'isCorrect' => $choice->isCorrect,
+                        ];
+                    }),
+                    'selectedChoiceID' => $answer->selected_choice_id,
+                    'selectedChoice' => $answer->selectedChoice ? (function ($selectedChoice) {
+                        $selectedChoiceText = $selectedChoice->choiceText;
+                        if ($selectedChoice->choiceText) {
+                            try {
+                                $selectedChoiceText = Crypt::decryptString($selectedChoice->choiceText);
+                            } catch (\Exception $e) {
+                                // If decryption fails, use as-is
+                            }
+                        }
+                        return [
+                            'choiceID' => $selectedChoice->choiceID,
+                            'choiceText' => $selectedChoiceText,
+                            'isCorrect' => $selectedChoice->isCorrect,
+                        ];
+                    })($answer->selectedChoice) : null,
+                ];
+            }),
+        ];
 
         return response()->json([
-            'message' => 'Leaderboard retrieved successfully.',
-            'leaderboard' => $leaderboard
+            'message' => 'Result retrieved successfully.',
+            'data' => $formattedResult,
         ]);
     }
 }

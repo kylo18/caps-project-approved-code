@@ -15,7 +15,7 @@ import ResetPasswordModal from "../components/ResetPasswordModal";
 import ForgotUserCodeModal from "../components/ForgotUserCodeModal";
 import ResetUserCodeModal from "../components/ResetUserCodeModal";
 import AppVersion from "../components/appVersion";
-import LoadingOverlay from "../components/loadingOverlay";
+import DownloadModal from "../components/DownloadModal";
 
 import {
   clearDeferredInstallPrompt,
@@ -42,6 +42,7 @@ const getInitialAutoLoginState = () => {
 };
 
 function LandingPage() {
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -179,7 +180,8 @@ function LandingPage() {
         <ul className="outfit-500 absolute top-4 right-4 z-50 hidden items-center gap-4 text-[14px] text-gray-700 md:top-5 md:right-8 md:flex md:gap-6 md:text-[16px] 2xl:right-16">
           <li>
             <a
-              onClick={() => alert("Application is coming soon")}
+              //onClick={() => alert("Application is coming soon")}
+              onClick={() => setIsDownloadOpen(true)}
               className="cursor-pointer hover:text-gray-900"
             >
               Download
@@ -241,7 +243,8 @@ function LandingPage() {
             <nav className="flex flex-col gap-6">
               <a
                 onClick={() => {
-                  alert("Application is coming soon");
+                  //alert("Application is coming soon");
+                  setIsDownloadOpen(true);
                   setIsSidebarOpen(false);
                 }}
                 className="cusror-pointer text-[14px] font-medium text-gray-700 hover:text-gray-900"
@@ -422,10 +425,10 @@ function LandingPage() {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="lucide lucide-newspaper-icon lucide-newspaper"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-newspaper-icon lucide-newspaper"
                   >
                     <path d="M15 18h-5" />
                     <path d="M18 14h-8" />
@@ -452,10 +455,10 @@ function LandingPage() {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="lucide lucide-file-pen-line-icon lucide-file-pen-line"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-file-pen-line-icon lucide-file-pen-line"
                   >
                     <path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z" />
                     <path d="M14.487 7.858A1 1 0 0 1 14 7V2" />
@@ -705,7 +708,7 @@ function LandingPage() {
           </div>
         </footer>
       </div>
-
+      
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
@@ -758,20 +761,10 @@ function LandingPage() {
           setIsLoginOpen(true);
         }}
       />
-      <ResetUserCodeModal
-        isOpen={isResetUserCodeOpen}
-        onClose={() => {
-          setIsResetUserCodeOpen(false);
-          window.history.replaceState({}, "", window.location.pathname);
-        }}
-        onSwitchToLogin={() => {
-          setIsResetUserCodeOpen(false);
-          window.history.replaceState({}, "", window.location.pathname);
-          setIsLoginOpen(true);
-        }}
+      <DownloadModal
+        isOpen={isDownloadOpen}
+        onClose={() => setIsDownloadOpen(false)}
       />
-
-      <LoadingOverlay show={isAutoLoggingIn} message="Logging in..." />
     </>
   );
 }

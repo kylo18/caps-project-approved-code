@@ -1,0 +1,507 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Purpose: Faculty dashboard — displays faculty-specific statistics and provides
+//          quick access to assigned subjects, student progress, and quiz creation.
+//
+// Features:
+// - Greeting with user name
+// - Stats grid (students, faculty, subjects, questions)
+// - Class average with progress bar
+// - Quick action cards
+// - Assigned subjects list
+// - Pull-to-refresh
+// - Uses MobileHeader with NativeWind styling
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
+import { apiRequest } from '../../../src/services/apiClient';
+import { useTheme } from '../../../src/contexts/ThemeContext';
+import { showToast } from '../../../src/hooks/useToast';
+import MobileHeader from '../../../src/features/core/components/MobileHeader';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
+import GenerateReportModal from '../../../src/features/support/components/GenerateReportModal';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
+
+export default function FacultyDashboard() {
+  const router = useRouter();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
+  const auth = useSelector((state: any) => state.auth);
+  const user = auth?.user;
+
+  const insets = useSafeAreaInsets();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [stats, setStats] = useState({ totalStudents: 0, totalFaculty: 0, totalSubjects: 0, totalQuestions: 0, avgScore: 0 });
+
+  const firstName = user?.firstName || 'Faculty';
+  const lastName = user?.lastName || '';
+
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [programScores, setProgramScores] = useState<any[]>([]);
+  const [quizTitle, setQuizTitle] = useState('');
+  const [quizTypeID, setQuizTypeID] = useState<number>(2); // 1 = subject-based, 2 = custom
+  const [quizSubjectID, setQuizSubjectID] = useState<number | null>(null);
+  const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleCreateQuiz = async () => {
+    if (!quizTitle.trim()) {
+      showToast('Please enter a quiz title', 'error');
+      return;
+    }
+    if (quizTypeID === 1 && !quizSubjectID) {
+      showToast('Please select a subject for subject-based quiz', 'error');
+      return;
+    }
+
+    setIsCreatingQuiz(true);
+    try {
+      const res = await apiRequest('/api/personal-quizzes', {
+        method: 'POST',
+        body: {
+          title: quizTitle.trim(),
+          quiz_type_id: quizTypeID,
+          subjectID: quizSubjectID || null,
+          coverage_id: quizTypeID === 1 ? 1 : undefined,
+        },
+      });
+      const quizID = res?.quiz?.personalQuizID || res?.personalQuizID || res?.data?.personalQuizID;
+      setShowQuizModal(false);
+      setQuizTitle('');
+      setQuizTypeID(2);
+      setQuizSubjectID(null);
+      if (quizID) {
+        router.push({ pathname: '/(auth)/practice-exam/add-question', params: { personalQuizID: String(quizID), subjectID: quizSubjectID ? String(quizSubjectID) : undefined } });
+      } else {
+        showToast('Quiz created but could not navigate to add questions', 'success');
+      }
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to create quiz', 'error');
+    } finally {
+      setIsCreatingQuiz(false);
+    }
+  };
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [subjectsRes, statsRes, studentsRes, comparisonRes] = await Promise.allSettled([
+        apiRequest('/api/faculty/my-subjects'),
+        apiRequest('/api/dashboard/stats'),
+        apiRequest('/api/my-students'),
+        apiRequest('/api/admin/analytics/program-comparison'),
+      ]);
+
+      // Subjects and questions count from my-subjects
+      if (subjectsRes.status === 'fulfilled') {
+        const subjectList = subjectsRes.value?.subjects || subjectsRes.value?.data || subjectsRes.value || [];
+        setSubjects(Array.isArray(subjectList) ? subjectList : []);
+      }
+
+      // Faculty count + avg score from dashboard/stats
+      let totalFaculty = 0;
+      let avgScore = 0;
+      if (statsRes.status === 'fulfilled') {
+        const data = statsRes.value?.data || statsRes.value || {};
+        totalFaculty = Number(data.faculty ?? 0);
+        avgScore = Math.round(Number(data.average_score ?? 0));
+      }
+
+      // Students count from my-students
+      const myStudents = studentsRes.status === 'fulfilled' ? (studentsRes.value?.data || studentsRes.value || []) : [];
+      const totalStudents = Array.isArray(myStudents) ? myStudents.length : 0;
+
+      const subjectList = subjectsRes.status === 'fulfilled'
+        ? (subjectsRes.value?.subjects || subjectsRes.value?.data || subjectsRes.value || [])
+        : [];
+      const subjectArray = Array.isArray(subjectList) ? subjectList : [];
+
+      setStats({
+        totalStudents,
+        totalFaculty,
+        totalSubjects: subjectArray.length,
+        totalQuestions: Number(subjectsRes.status === 'fulfilled' ? (subjectsRes.value?.totalQuestions ?? 0) : 0),
+        avgScore,
+      });
+
+      if (comparisonRes.status === 'fulfilled') {
+        const comp = comparisonRes.value?.data || comparisonRes.value || [];
+        setProgramScores(Array.isArray(comp) ? comp : []);
+      }
+    } catch (error) {
+      console.error('Error fetching faculty data:', error);
+      showToast('Failed to load data', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await fetchData();
+    setIsRefreshing(false);
+  }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const quickActions = [
+    { icon: 'layers' as const, label: 'My Classes', route: '/(auth)/(faculty)/classes', color: colors.orange },
+    { icon: 'people' as const, label: 'Students', route: '/(auth)/(faculty)/users', color: '#3B82F6' },
+    { icon: 'create' as const, label: 'Create Quiz', color: '#10B981', onPress: () => setShowQuizModal(true) },
+    { icon: 'document-text' as const, label: 'Generate Report', color: '#8B5CF6', onPress: () => setShowReportModal(true) },
+  ];
+
+  const cardStyle = {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderWidth: 1,
+    ...shadow,
+  };
+
+  useScreenFloatingTools([
+    {
+      key: 'insights',
+      icon: 'grid-outline',
+      label: 'Insights',
+      onPress: () => router.push('/(auth)/(faculty)/insights'),
+    },
+    {
+      key: 'reports',
+      icon: 'document-text-outline',
+      label: 'Reports',
+      onPress: () => router.push('/(auth)/(faculty)/reports'),
+    },
+    {
+      key: 'classes',
+      icon: 'layers-outline',
+      label: 'Classes',
+      onPress: () => router.push('/(auth)/(faculty)/classes'),
+    },
+    {
+      key: 'export',
+      icon: 'print-outline',
+      label: 'Export & Print',
+      onPress: () => router.push('/(auth)/(faculty)/subjects'),
+    },
+    {
+      key: 'quiz',
+      icon: 'create-outline',
+      label: 'Create Quiz',
+      onPress: () => setShowQuizModal(true),
+    },
+  ]);
+
+  if (isLoading) {
+    return (
+      <View className="flex-1" style={{ backgroundColor: colors.page, paddingBottom: insets.bottom + 12 }}>
+        <MobileHeader title="Faculty Dashboard" />
+        <View className="flex-1 justify-center items-center">
+          <CapsActivityIndicator size="large" color={colors.orange} />
+          <Text className="mt-3" style={{ color: colors.textSoft }}>
+            Loading dashboard...
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1" style={{ backgroundColor: colors.page, paddingBottom: insets.bottom + 12 }}>
+      <MobileHeader title="Faculty Dashboard" />
+
+      <ScrollView
+        className="flex-1 px-4 pt-4"
+        contentContainerStyle={{ paddingBottom: 112, gap: 16 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.orange} />
+        }
+      >
+        {/* Greeting Section */}
+        <View className="mb-2">
+          <Text className="text-sm" style={{ color: colors.textSoft }}>
+            {getGreeting()},
+          </Text>
+          <Text className="text-2xl font-bold" style={{ color: colors.text }}>
+            {firstName} {lastName}
+          </Text>
+        </View>
+
+        {/* Stats Grid */}
+        <View className="flex-row flex-wrap gap-3">
+          {[
+            { icon: 'people' as const, value: stats.totalStudents, label: 'Students', color: '#3B82F6' },
+            { icon: 'person' as const, value: stats.totalFaculty, label: 'Faculty', color: '#8B5CF6' },
+            { icon: 'book' as const, value: stats.totalSubjects, label: 'Subjects', color: colors.orange },
+            { icon: 'help-circle' as const, value: stats.totalQuestions, label: 'Questions', color: '#10B981' },
+          ].map((stat, idx) => (
+            <View
+              key={idx}
+              className={`rounded-2xl p-3 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
+              style={[{ width: CARD_WIDTH }, cardStyle]}
+            >
+              <View
+                className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                style={{ backgroundColor: `${stat.color}15` }}
+              >
+                <Ionicons name={stat.icon} size={20} color={stat.color} />
+              </View>
+              <Text className="text-xl font-extrabold" style={{ color: colors.text }}>
+                {stat.value}
+              </Text>
+              <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
+                {stat.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Average Score Card */}
+        <View className={`rounded-2xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={cardStyle}>
+          <View className="flex-row justify-between items-center mb-3">
+            <View>
+              <Text className="text-sm" style={{ color: colors.textSoft }}>
+                Class Average
+              </Text>
+              <Text className="text-3xl font-extrabold mt-1" style={{ color: colors.text }}>
+                {stats.avgScore}%
+              </Text>
+            </View>
+            <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: '#FE690220' }}>
+              <Ionicons name="trending-up" size={28} color={colors.orange} />
+            </View>
+          </View>
+          <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
+            <View
+              className="h-full rounded-full"
+              style={{ width: `${stats.avgScore}%`, backgroundColor: colors.orange }}
+            />
+          </View>
+        </View>
+
+        {/* Program Comparison */}
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
+          Program Comparison
+        </Text>
+        <View className={`rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={cardStyle}>
+          {programScores.length === 0 ? (
+            <View className="items-center py-4">
+              <Ionicons name="bar-chart-outline" size={32} color={colors.mutedIcon} />
+              <Text className="mt-2 text-sm" style={{ color: colors.textSoft }}>
+                No exam data available yet
+              </Text>
+            </View>
+          ) : (
+            programScores.map((program, idx) => {
+              const score = Math.round(Number(program.average_score ?? 0));
+              return (
+                <View
+                  key={program.programID ?? program.programName}
+                  className={`flex-row items-center py-3 ${idx !== programScores.length - 1 ? 'border-b' : ''}`}
+                  style={{ borderBottomColor: idx !== programScores.length - 1 ? colors.border : 'transparent' }}
+                >
+                  <Text className="w-20 font-semibold text-sm" style={{ color: colors.text }}>
+                    {program.programName}
+                  </Text>
+                  <View className="flex-1 mx-3">
+                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
+                      <View
+                        className="h-full rounded-full"
+                        style={{ width: `${score}%`, backgroundColor: colors.orange }}
+                      />
+                    </View>
+                  </View>
+                  <Text className="w-12 text-right font-semibold text-xs" style={{ color: colors.text }}>
+                    {score}%
+                  </Text>
+                </View>
+              );
+            })
+          )}
+        </View>
+
+        {/* Quick Actions */}
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
+          Quick Actions
+        </Text>
+        <View className="flex-row flex-wrap gap-3">
+          {quickActions.map((action, idx) => (
+            <TouchableOpacity
+              key={idx}
+              className={`w-[48%] rounded-2xl p-4 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
+              style={cardStyle}
+              onPress={() => action.onPress ? action.onPress() : router.push(action.route as string)}
+              activeOpacity={0.7}
+            >
+              <View
+                className="w-12 h-12 rounded-full items-center justify-center mb-2"
+                style={{ backgroundColor: `${action.color}15` }}
+              >
+                <Ionicons name={action.icon} size={24} color={action.color} />
+              </View>
+              <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                {action.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Assigned Subjects */}
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
+          My Subjects
+        </Text>
+
+        {subjects.length === 0 ? (
+          <View className={`rounded-2xl p-8 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={cardStyle}>
+            <Ionicons name="book-outline" size={48} color={colors.mutedIcon} />
+            <Text className="mt-3 font-semibold" style={{ color: colors.textSoft }}>
+              No subjects assigned yet
+            </Text>
+          </View>
+        ) : (
+          <>
+            {subjects.slice(0, 4).map((subject, idx) => (
+              <TouchableOpacity
+                key={subject.subjectID || idx}
+                className={`flex-row items-center rounded-xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
+                style={cardStyle}
+                onPress={() => router.push('/(auth)/(faculty)/subjects')}
+                activeOpacity={0.7}
+              >
+                <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: `${colors.orange}18` }}>
+                  <Ionicons name="book" size={20} color={colors.orange} />
+                </View>
+                <View className="flex-1 ml-3">
+                  <Text className="font-semibold" style={{ color: colors.text }}>
+                    {subject.subjectName || subject.name}
+                  </Text>
+                  {subject.subjectCode && (
+                    <Text className="text-xs mt-0.5" style={{ color: colors.textSoft }}>
+                      {subject.subjectCode}
+                    </Text>
+                  )}
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.mutedIcon} />
+              </TouchableOpacity>
+            ))}
+
+            {subjects.length > 4 && (
+              <TouchableOpacity
+                className={`flex-row items-center justify-center p-4 rounded-xl ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
+                style={cardStyle}
+                onPress={() => router.push('/(auth)/(faculty)/subjects')}
+              >
+                <Text className="font-semibold" style={{ color: colors.orange }}>View All Subjects</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.orange} className="ml-2" />
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+      </ScrollView>
+
+      {/* Create Quiz Modal */}
+      <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ width: '100%' }}
+          >
+            <View className={`rounded-t-3xl px-5 pt-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={{ paddingBottom: Math.max(insets.bottom + 16, 34) }}>
+              <View className="flex-row items-center justify-between mb-5">
+                <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Quiz</Text>
+                <TouchableOpacity onPress={() => setShowQuizModal(false)}>
+                  <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                </TouchableOpacity>
+              </View>
+
+              <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Title</Text>
+              <TextInput
+                value={quizTitle}
+                onChangeText={setQuizTitle}
+                placeholder="Enter quiz title"
+                placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'bg-[#242424] text-white border-[#2A2A2A]' : 'bg-gray-50 text-gray-900 border-gray-200'}`}
+              />
+
+              <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Type</Text>
+              <View className="flex-row gap-3 mb-4">
+                {[ { id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' } ].map((type) => (
+                  <TouchableOpacity
+                    key={type.id}
+                    onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
+                    className={`flex-1 rounded-xl px-4 py-3 border text-center ${quizTypeID === type.id ? 'border-[#FE6902]' : isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}
+                    style={{ backgroundColor: isDark && quizTypeID === type.id ? 'rgba(254,105,2,0.15)' : undefined }}
+                  >
+                    <Text className={`font-semibold ${quizTypeID === type.id ? 'text-[#FE6902]' : isDark ? 'text-white' : 'text-gray-900'}`}>{type.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {quizTypeID === 1 && (
+                <>
+                  <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Select Subject</Text>
+                  <ScrollView style={{ maxHeight: 160 }} className="mb-4">
+                    <View style={{ gap: 8 }}>
+                      {subjects.map((subject) => {
+                        const sid = subject.subjectID || subject.id;
+                        return (
+                          <TouchableOpacity
+                            key={sid}
+                            onPress={() => setQuizSubjectID(Number(sid))}
+                            className={`rounded-xl px-4 py-3 border ${quizSubjectID === sid ? 'border-[#FE6902]' : isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}
+                            style={{ backgroundColor: isDark && quizSubjectID === sid ? 'rgba(254,105,2,0.15)' : isDark && quizSubjectID !== sid ? '#242424' : undefined }}
+                          >
+                            <Text className={`font-semibold ${quizSubjectID === sid ? 'text-[#FE6902]' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {subject.subjectName || subject.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </>
+              )}
+
+              <TouchableOpacity
+                onPress={handleCreateQuiz}
+                disabled={isCreatingQuiz}
+                className="bg-primary rounded-2xl py-4 items-center mt-2"
+                style={{ opacity: isCreatingQuiz ? 0.7 : 1 }}
+              >
+                {isCreatingQuiz ? (
+                  <CapsActivityIndicator color="#fff" />
+                ) : (
+                  <Text className="text-white font-semibold">Create & Add Questions</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      <GenerateReportModal visible={showReportModal} onClose={() => setShowReportModal(false)} />
+    </View>
+  );
+}

@@ -8,8 +8,7 @@ import useToast from "../hooks/useToast";
 import Toast from "./Toast";
 import CollegeLogo from "/src/assets/college-logo.png";
 import AppVersion from "./appVersion";
-import ProfileModalsHost from "./ProfileModalsHost";
-import { useUserProfile } from "../hooks/useUserProfile";
+import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification, createAnnouncement, getSentAnnouncements, deleteSentAnnouncement, deleteAllSentAnnouncements } from "../services/notificationService";
 
 import DashboardIcon from "/src/assets/symbols/dashboard.svg";
 import DashboardIconH from "/src/assets/symbols/dashboardhover.svg";
@@ -30,8 +29,6 @@ import PrintIconH from "/src/assets/symbols/printhover.svg";
 import SessionsIcon from "/src/assets/symbols/sessions.svg";
 import SessionsIconH from "/src/assets/symbols/sessionshover.svg";
 
-import ReportsIcon from "/src/assets/symbols/reports.svg";
-import ReportsIconH from "/src/assets/symbols/reportshover.svg";
 
 import SupportIcon from "/src/assets/symbols/support.svg";
 import SupportIconH from "/src/assets/symbols/supporthover.svg";
@@ -70,6 +67,7 @@ const Sidebar = ({
   isSubjectExpanded,
   setIsSubjectExpanded,
 }) => {
+  const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1025);
   const collegeLogo = new URL("/college-logo.png", import.meta.url).href;
   const [isSubjectFocused, setIsSubjectFocused] = useState(false);
@@ -79,38 +77,161 @@ const Sidebar = ({
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const profile = useUserProfile();
-  const {
-    userInfo,
-    avatarColor,
-    showProfileModal,
-    setShowProfileModal,
-    showChangePassword,
-    clearUserAvatarColor,
-  } = profile;
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [isChangePasswordSubmitting, setIsChangePasswordSubmitting] =
+    useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [formData, setFormData] = useState({
+    password: "",
+    new_password: "",
+    new_password_confirmation: "",
+  });
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [profileFormData, setProfileFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    userCode: "",
+  });
+  const [isProfileSubmitting, setIsProfileSubmitting] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
+  const [wasProfileModalOpen, setWasProfileModalOpen] = useState(false);
+  const [avatarColor, setAvatarColor] = useState("bg-gray-300");
+  // new added: Analytics popup state and ref
+  const [showAnalyticsPopup, setShowAnalyticsPopup] = useState(false);
+  const [newUsersCount, setNewUsersCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [showAddAnnouncementModal, setShowAddAnnouncementModal] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementMessage, setAnnouncementMessage] = useState("");
+  const [isAnnouncing, setIsAnnouncing] = useState(false);
+  const [showSentHistoryModal, setShowSentHistoryModal] = useState(false);
+  const [sentAnnouncements, setSentAnnouncements] = useState([]);
+  const [sentMeta, setSentMeta] = useState({ total_count: 0, current_page: 1, last_page: 1 });
+  const [loadingSent, setLoadingSent] = useState(false);
+  const [activeNotificationTab, setActiveNotificationTab] = useState("notifications");
+  const [targetType, setTargetType] = useState("all");
+  const [selectedProgramId, setSelectedProgramId] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [availablePrograms, setAvailablePrograms] = useState([]);
+  const [availableClasses, setAvailableClasses] = useState([]);
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  // duplicate apiUrl removed
 
-  // Dark mode toggle (shared via `theme` in localStorage + `html.dark`)
-  const [isDarkMode, setIsDarkMode] = useState(
-    () => localStorage.getItem("theme") === "dark",
-  );
-
+  // Fetch programs or classes when the announcement modal opens
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDarkMode);
-    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
-    window.dispatchEvent(new Event("themechange"));
-  }, [isDarkMode]);
+    if (!showAddAnnouncementModal) return;
 
-  useEffect(() => {
-    const handler = () =>
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    window.addEventListener("themechange", handler);
-    return () => window.removeEventListener("themechange", handler);
-  }, []);
+    const token = sessionStorage.getItem("token");
+    const parsedRoleId = Number(role_id);
 
+    if (parsedRoleId === 4 || parsedRoleId === 5) {
+      // Fetch programs
+      const fetchPrograms = async () => {
+        try {
+          const res = await fetch(`${apiUrl}/programs`, {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (res.ok) {
+            const result = await res.json();
+            setAvailablePrograms(result.data || []);
+            setTargetType("all");
+          }
+        } catch (err) {
+          console.error("Error fetching programs:", err);
+        }
+      };
+      fetchPrograms();
+    } else if (parsedRoleId === 2) {
+      // Fetch classes
+      const fetchClasses = async () => {
+        try {
+          const res = await fetch(`${apiUrl}/classes/index`, {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (res.ok) {
+            const result = await res.json();
+            setAvailableClasses(result.classes || []);
+            setTargetType("enrolled"); // default for Faculty
+          }
+        } catch (err) {
+          console.error("Error fetching classes:", err);
+        }
+      };
+      fetchClasses();
+    } else if (parsedRoleId === 3) {
+      setTargetType("program_students");
+    }
+  }, [showAddAnnouncementModal, role_id, apiUrl]);
+
+  // Fetch sent announcements when history modal opens
+  const fetchSentAnnouncements = async (page = 1) => {
+    setLoadingSent(true);
+    try {
+      const res = await getSentAnnouncements(page, 20);
+      console.log('DEBUG: Sent announcements response:', res);
+      // Expecting { data: [], meta: { total_count, current_page, last_page } } or similar
+      setSentAnnouncements(res.data || []);
+      setSentMeta({
+        total_count: res.meta?.total_count ?? res.total_count ?? 0,
+        current_page: res.meta?.current_page ?? res.current_page ?? page,
+        last_page: res.meta?.last_page ?? res.last_page ?? 1,
+      });
+      console.log('DEBUG: Announcements set to:', res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch sent announcements', err);
+      setSentAnnouncements([]);
+    } finally {
+      setLoadingSent(false);
+    }
+  };
+
+  // Delete a single sent announcement
+  const handleDeleteAnnouncement = async (id) => {
+    try {
+      await deleteSentAnnouncement(id);
+      showToast("Announcement deleted successfully", "success");
+      fetchSentAnnouncements(1);
+    } catch (err) {
+      console.error("Failed to delete announcement:", err);
+      showToast(err.message || "Failed to delete announcement", "error");
+    }
+  };
+
+  // Delete all sent announcements
+  const handleDeleteAllAnnouncements = async () => {
+    if (!confirm("Are you sure you want to delete all announcements? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await deleteAllSentAnnouncements();
+      showToast("All announcements deleted successfully", "success");
+      fetchSentAnnouncements(1);
+    } catch (err) {
+      console.error("Failed to delete all announcements:", err);
+      showToast(err.message || "Failed to delete all announcements", "error");
+    }
+  };
+
+
+  const analyticsRef = useRef(null);
   const sidebarRef = useRef();
   const userDropdownRef = useRef(null);
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+
   const { toast, showToast } = useToast();
 
   const location = useLocation();
@@ -151,6 +272,59 @@ const Sidebar = ({
     return () => window.removeEventListener("openSubjectSidebar", openSidebar);
   }, []);
 
+  // Fetch user info
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        const response = await fetch(`${apiUrl}/user/profile`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch user info");
+        }
+
+        const data = await response.json();
+        setUserInfo(data);
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    fetchUserInfo();
+  }, [apiUrl]);
+
+  // Fetch pending users count
+  useEffect(() => {
+    const fetchPendingUsersCount = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        const response = await fetch(`${apiUrl}/admin/pending-users-count`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Pending users count:", data.count);
+          setNewUsersCount(data.count || 0);
+        }
+      } catch (err) {
+        console.error("Error fetching pending users count:", err);
+      }
+    };
+
+    fetchPendingUsersCount();
+  }, [userInfo]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -166,6 +340,227 @@ const Sidebar = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Close More drawer when clicking outside
+  useEffect(() => {
+    if (!showMoreDrawer) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest("[data-more-popup]")) {
+        setShowMoreDrawer(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMoreDrawer]);
+
+  //new added: Close Analytics popup when clicking outside
+  useEffect(() => {
+    if (!showAnalyticsPopup) return;
+    const handleClickOutside = (e) => {
+      if (analyticsRef.current && !analyticsRef.current.contains(e.target)) {
+        setShowAnalyticsPopup(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAnalyticsPopup]);
+
+  // Close Support or Notifications popup when clicking outside
+  useEffect(() => {
+    if (!activeMenu) return;
+    const handleClickOutside = (e) => {
+      if (activeMenu === "Support" && !e.target.closest("[data-support-popup]")) {
+        setActiveMenu(null);
+      }
+      if (activeMenu === "Notifications" && !e.target.closest("[data-notifications-popup]")) {
+        setActiveMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [activeMenu]);
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const response = await getNotifications();
+      setNotifications(response.data || []);
+      setUnreadCount(response.meta?.unread_count || 0);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Error marking all notifications read:", err);
+    }
+  };
+
+  const handleMarkRead = async (id, actionUrl) => {
+    try {
+      await markNotificationRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      if (actionUrl) {
+        setActiveMenu(null);
+        navigate(actionUrl);
+      }
+    } catch (err) {
+      console.error("Error marking notification read:", err);
+    }
+  };
+
+  const handleNotificationClick = async (item) => {
+    setActiveMenu(null);
+    setSelectedNotification(item);
+    if (!item.is_read) {
+      try {
+        await markNotificationRead(item.id);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === item.id ? { ...n, is_read: true } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      } catch (err) {
+        console.error("Error marking notification read:", err);
+      }
+    }
+  };
+
+  const handleDeleteNotification = async (id, event) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    try {
+      await deleteNotification(id);
+      setNotifications((prev) => {
+        const itemToDelete = prev.find((n) => n.id === id);
+        const wasUnread = itemToDelete && !itemToDelete.is_read;
+        if (wasUnread) {
+          setUnreadCount((prevCount) => Math.max(0, prevCount - 1));
+        }
+        return prev.filter((n) => n.id !== id);
+      });
+      if (selectedNotification && selectedNotification.id === id) {
+        setSelectedNotification(null);
+      }
+      showToast("Notification deleted successfully", "success");
+    } catch (err) {
+      console.error("Error deleting notification:", err);
+      showToast("Failed to delete notification", "error");
+    }
+  };
+
+  const handleCreateAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!announcementTitle.trim() || !announcementMessage.trim()) return;
+
+    setIsAnnouncing(true);
+    try {
+      let finalTargetType = targetType;
+      let finalTargetId = null;
+
+      const parsedRoleId = Number(role_id);
+
+      if (parsedRoleId === 4 || parsedRoleId === 5) {
+        // Dean / Associate Dean
+        if (targetType === "program") {
+          finalTargetType = "program_students";
+          finalTargetId = Number(selectedProgramId);
+        } else if (targetType === "role_student") {
+          finalTargetType = "role";
+          finalTargetId = 1; // Student roleID
+        } else if (targetType === "role_faculty") {
+          finalTargetType = "role";
+          finalTargetId = 2; // Faculty roleID
+        } else if (targetType === "role_chair") {
+          finalTargetType = "role";
+          finalTargetId = 3; // Program Chair roleID
+        } else {
+          finalTargetType = "all";
+        }
+      } else if (parsedRoleId === 3) {
+        // Program Chair targets students in their program
+        finalTargetType = "program_students";
+        finalTargetId = userInfo?.programID || null;
+      } else if (parsedRoleId === 2) {
+        // Faculty
+        if (targetType === "class_students") {
+          finalTargetType = "class_students";
+          finalTargetId = Number(selectedClassId);
+        } else {
+          finalTargetType = "enrolled";
+        }
+      }
+
+      // Validation check
+      if ((finalTargetType === "program_students" || finalTargetType === "class_students") && !finalTargetId) {
+        showToast("Please select a valid target option.", "error");
+        setIsAnnouncing(false);
+        return;
+      }
+
+      await createAnnouncement({
+        type: "system_announcement",
+        title: announcementTitle.trim(),
+        message: announcementMessage.trim(),
+        target_type: finalTargetType,
+        target_id: finalTargetId,
+      });
+
+      showToast("Announcement created successfully!", "success");
+      setAnnouncementTitle("");
+      setAnnouncementMessage("");
+      setSelectedProgramId("");
+      setSelectedClassId("");
+      setShowAddAnnouncementModal(false);
+      fetchNotifications();
+      // Switch to History tab and fetch to show the new announcement
+      setActiveNotificationTab("history");
+      setActiveMenu("Notifications");
+      fetchSentAnnouncements(1);
+    } catch (err) {
+      console.error("Failed to create announcement:", err);
+      showToast(err.message || "Failed to create announcement", "error");
+    } finally {
+      setIsAnnouncing(false);
+    }
+  };
+
+  const formatTimeAgo = (dateString) => {
+    try {
+      const now = new Date();
+      const date = new Date(dateString);
+      const seconds = Math.floor((now - date) / 1000);
+      if (isNaN(seconds) || seconds < 0) return "Just now";
+
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days > 7) {
+        return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      }
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return "Just now";
+    } catch (e) {
+      return "";
+    }
+  };
 
   // Handle logout
   const handleLogout = async () => {
@@ -241,27 +636,33 @@ const Sidebar = ({
               ? "/asso-dean-dashboard"
               : "/";
 
-  const baseMenuItems = [
-    {
-      icon: parsedRoleId === 1 ? "bx-file-detail" : "bx-home-alt-3",
-      label: parsedRoleId === 1 ? "Exams" : "Home",
-      path: homePath,
-    },
+  const baseMenuItems = [ //this is for Home in sidebar
+    { icon: "bx-home-alt-3", label: "Home", path: homePath },
   ];
   const librariesItem = {
-    label: "Quizzes",
+    label: "Quizzes", //this is for quizzes in sidebar
     path: "/libraries",
   };
   const sessionsItem = {
-    label: "Sessions",
+    label: "Sessions",  //this is for Sessions in sidebar
     path: "/sessions",
   };
   const classItem = {
-    label: "Classes",
+    label: "Classes",   //this is for Classes in sidebar
     path: "/class",
   };
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-book-bookmark", label: "Subjects" }];
+  
+  //this is for achievements, leaderboards, content analytics, difficult analytics in the student sidebar
+  const analyticsMenuItems = [  
+    { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
+    { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart"},
+    { label: "Content Analytics", path: "/analytics/content-analytics", icon: "bx bx-file" },
+    { label: "Difficulty", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
+  ];
+  
+
   const studentSubjectsItem = {
     label: "Subjects",
     path: "/student/subjects",
@@ -270,8 +671,8 @@ const Sidebar = ({
   let menuItems = [];
 
   if (parsedRoleId === 1) {
-    // Student menu items: Home, Classes, Sessions
-    menuItems = [...baseMenuItems, classItem, sessionsItem];
+    // Student menu items: Home, Sessions, Classes only
+    menuItems = [...baseMenuItems, sessionsItem, classItem];
   } else {
     // if NOT student
     menuItems = [...baseMenuItems];
@@ -312,9 +713,15 @@ const Sidebar = ({
       );
     }
 
+    // Analytics routes — each item lights up based on current route
+    // (AnalyticsPage updates the route via scroll spy as user scrolls)
+    if (path.startsWith("/analytics/")) {
+      return location.pathname === path;
+    }
+
     return location.pathname === path;
   };
-
+  
   const handleMenuClick = () => {
     setIsSubjectFocused(false);
     setIsSubjectExpanded(false);
@@ -323,261 +730,191 @@ const Sidebar = ({
     setActiveMenu(null);
   };
 
-  // Mobile bottom navigation
+  // Mobile bottom navigation, this is home for mobile
   if (isMobile) {
-    const homeItem = menuItems.find(
-      (item) => item.label === "Home" || item.label === "Exams",
-    );
-
+    const homeItem = menuItems.find((item) => item.label === "Home");
+    const mobileNavItems = parsedRoleId === 1
+    ? [ //this is for buttom menus in mobile view, this is for student only
+      
+      { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart" },
+      { label: "Classes", path: "/class", image: ClassIcon, activeImage: ClassIconH },
+      { label: "Home", path: homeItem?.path || "/", icon: "bx-home-alt-3", home: true },
+      { label: "Sessions", path: "/sessions", image: SessionsIcon, activeImage: SessionsIconH },
+      { label: "More", path: null, icon: "bx bx-dots-horizontal-rounded", more: true },
+    ]
+    : [
+      { label: "Users",    path: "/users",     image: UsersIcon,    activeImage: UsersIconH    },
+      { label: "Classes",  path: "/class",     image: ClassIcon,    activeImage: ClassIconH    },
+      { label: "Home",     path: homeItem?.path || "/", icon: "bx-home-alt-3", home: true     },
+      { label: "Sessions", path: "/sessions",  image: SessionsIcon, activeImage: SessionsIconH },
+      { label: "More",     path: null,         icon: "bx bx-dots-horizontal-rounded", more: true },
+      
+    ];
+    
     return (
       <>
-        <div
-          id="mobile-bottom-nav"
-          className="fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-4"
-        >
-          <div className="border-color mx-4 w-full max-w-md rounded-2xl border border-gray-200 bg-white px-4 py-2 shadow-lg min-[500px]:px-6">
-            <div
-              className={
-                parsedRoleId === 1
-                  ? "flex items-center justify-evenly"
-                  : "flex items-center justify-between gap-8"
-              }
-            >
-              {parsedRoleId === 1 ? (
-                <>
-                  {/* Sessions (student) â€” left */}
-                  <div className="flex h-16 flex-col items-center justify-center">
-                    <Link
-                      to="/sessions"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/sessions")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                        <img
-                          src={
-                            isActive("/sessions") ? SessionsIconH : SessionsIcon
-                          }
-                          alt="Sessions"
-                          className="h-6 w-6 object-contain"
-                        />
-                      </span>
-                      <span className="outfit-500 text-xs">Sessions</span>
-                    </Link>
-                  </div>
-
-                  {/* Home (student, orange circle) â€” center */}
-                  {homeItem && (
-                    <div className="flex h-16 flex-col items-center justify-center">
-                      <Link
-                        to={homeItem.path}
-                        onClick={handleMenuClick}
-                        className="flex flex-col items-center"
-                      >
-                        <span className="mb-1 flex items-center justify-center">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg">
-                            <i className="bx bx-file-detail text-[20px]"></i>
-                          </span>
-                        </span>
-                        <span
-                          className={`outfit-500 text-xs ${
-                            isActive(homeItem.path)
-                              ? "text-orange-600"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {homeItem.label}
-                        </span>
-                      </Link>
-                    </div>
-                  )}
-
-                  {/* Classes (student) â€” right */}
-                  <div className="flex h-16 flex-col items-center justify-center">
-                    <Link
-                      to="/class"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/class")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                        <img
-                          src={isActive("/class") ? ClassIconH : ClassIcon}
-                          alt="Classes"
-                          className="h-6 w-6 object-contain"
-                        />
-                      </span>
-                      <span className="outfit-500 text-xs">Classes</span>
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* My Library */}
-                  <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                    <Link
-                      to="/libraries"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/libraries")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                        <img
-                          src={
-                            isActive("/libraries")
-                              ? LibrariesIconH
-                              : LibrariesIcon
-                          }
-                          alt="Quizzes"
-                          className="h-6 w-6 object-contain"
-                        />
-                      </span>
-                      <span className="outfit-500 text-xs">Quizzes</span>
-                    </Link>
-                  </div>
-
-                  {/* Classes */}
-                  <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                    <Link
-                      to="/class"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/class")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                        <img
-                          src={isActive("/class") ? ClassIconH : ClassIcon}
-                          alt="Classes"
-                          className="h-6 w-6 object-contain"
-                        />
-                      </span>
-                      <span className="outfit-500 text-xs">Classes</span>
-                    </Link>
-                  </div>
-
-                  {/* Home (orange circle) */}
-                  {homeItem && (
-                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                      <Link
-                        to={homeItem.path}
-                        onClick={handleMenuClick}
-                        className="flex flex-col items-center"
-                      >
-                        <span className="mb-1 flex items-center justify-center">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg">
-                            <img
-                              src={DashboardIconW}
-                              alt="Dashboard"
-                              className="h-5 w-5 object-contain"
-                            />
-                          </span>
-                        </span>
-                        <span
-                          className={`outfit-500 text-xs ${
-                            isActive(homeItem.path)
-                              ? "text-orange-600"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {homeItem.label}
-                        </span>
-                      </Link>
-                    </div>
-                  )}
-
-                  {/* Users */}
-                  {parsedRoleId >= 2 && (
-                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                      <Link
-                        to="/users"
-                        onClick={handleMenuClick}
+        <div className="fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-4">
+          <div className="border-color mx-4 w-full max-w-md rounded-2xl border border-gray-200 bg-white px-2 py-2 shadow-lg min-[500px]:px-4">
+            <div className="grid grid-cols-5 gap-1">
+              {mobileNavItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex h-14 flex-col items-center justify-center"
+                >
+                  {item.more ? (
+                    <div className="relative flex flex-col items-center" data-more-popup>
+                      <button
+                        onClick={() => setShowMoreDrawer((prev) => !prev)}
                         className={`flex flex-col items-center transition-colors ${
-                          isActive("/users")
-                            ? "text-orange-600"
-                            : "text-gray-700 hover:text-gray-800"
+                          showMoreDrawer ? "text-orange-500" : "text-gray-700 hover:text-gray-800"
                         }`}
                       >
                         <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                          <img
-                            src={isActive("/users") ? UsersIconH : UsersIcon}
-                            alt="Users"
-                            className="h-6 w-6 object-contain"
-                          />
+                          <i className="bx bx-dots-horizontal-rounded text-[20px]"></i>
                         </span>
-                        <span className="outfit-500 text-xs">Users</span>
-                      </Link>
-                    </div>
-                  )}
+                        <span className="outfit-500 text-[9px] leading-4 text-center">More</span>
+                      </button>
 
-                  {/* Subjects (qualifying exam entry point) */}
-                  {parsedRoleId >= 2 && (
-                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                      <Link
-                        to={
-                          parsedRoleId === 2
-                            ? "/faculty/subjects"
-                            : parsedRoleId === 3
-                              ? "/program-chair/subjects"
-                              : parsedRoleId === 4
-                                ? "/dean/subjects"
-                                : "/asso-dean/subjects"
-                        }
-                        onClick={() => {
-                          handleMenuClick();
-                          setIsSubjectFocused(false);
-                          setIsSubjectExpanded(false);
-                        }}
-                        className={`flex flex-col items-center transition-colors ${
-                          isActive(
-                            parsedRoleId === 2
-                              ? "/faculty/subjects"
-                              : parsedRoleId === 3
-                                ? "/program-chair/subjects"
-                                : parsedRoleId === 4
-                                  ? "/dean/subjects"
-                                  : "/asso-dean/subjects",
-                          )
-                            ? "text-orange-600"
-                            : "text-gray-700 hover:text-gray-800"
+                      {/* Popup box above More button */}
+                      {showMoreDrawer && parsedRoleId === 1 && (
+                        <div className="absolute bottom-[52px] right-[-60px] z-[70] w-[200px] rounded-2xl border border-gray-200 bg-white shadow-xl p-3">
+                          {/* Arrow pointer */}
+                          <div className="absolute bottom-[-7px] right-[72px] h-3 w-3 rotate-45 border-b border-r border-gray-200 bg-white"></div>
+
+                          <p className="outfit-500 mb-2 px-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                            More options
+                          </p>
+                          <div className="flex flex-col gap-1">
+                            {[
+                              { label: " My Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
+                              { label: "Content", path: "/analytics/content-analytics", icon: "bx bx-file" },
+                              { label: "Difficulty", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
+                            ].map((moreItem) => (
+                              <Link
+                                key={moreItem.label}
+                                to={moreItem.path}
+                                onClick={() => { setShowMoreDrawer(false); }}
+                                className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${
+                                  isActive(moreItem.path)
+                                    ? "bg-orange-50 text-orange-600"
+                                    : "text-gray-600"
+                                }`}
+                              >
+                                <i className={`${moreItem.icon} text-[18px]`}></i>
+                                <span className="outfit-500 text-[13px]">{moreItem.label}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {showMoreDrawer && parsedRoleId !== 1 && (
+                        <div className="absolute bottom-[52px] right-[-60px] z-[70] w-[200px] rounded-2xl border border-gray-200 bg-white shadow-xl p-3">
+                          <div className="absolute bottom-[-7px] right-[72px] h-3 w-3 rotate-45 border-b border-r border-gray-200 bg-white"></div>
+                          <p className="outfit-500 mb-2 px-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">More options</p>
+                          <div className="flex flex-col gap-1">
+                            <Link
+                              to="/libraries"
+                              onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                              className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${isActive("/libraries") ? "bg-orange-50 text-orange-600" : "text-gray-600"}`}
+                            >
+                              <img src={isActive("/libraries") ? LibrariesIconH : LibrariesIcon} alt="Quizzes" className="h-[18px] w-[18px] object-contain" />
+                              <span className="outfit-500 text-[13px]">Quizzes</span>
+                            </Link>
+                            <Link
+                              to={parsedRoleId === 4 ? "/dean/subjects" : parsedRoleId === 5 ? "/asso-dean/subjects" : parsedRoleId === 3 ? "/program-chair/subjects" : "/faculty/subjects"}
+                              onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                              className="flex items-center gap-3 rounded-xl px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100"
+                            >
+                              <img src={SubjectsIcon} alt="Subjects" className="h-[18px] w-[18px] object-contain" />
+                              <span className="outfit-500 text-[13px]">Subjects</span>
+                            </Link>
+                            {(parsedRoleId === 4 || parsedRoleId === 5 || parsedRoleId === 2) && (
+                              <Link
+                                to="/admin/enhancement"
+                                onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                                className="flex items-center gap-3 rounded-xl px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100"
+                              >
+                                <i className="bx bx-bar-chart-square text-[18px]"></i>
+                                <span className="outfit-500 text-[13px]">Overview</span>
+                              </Link>
+                            )}
+                            <button
+                              onClick={() => { setShowMoreDrawer(false); setShowPrintModal(true); }}
+                              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-600 transition-colors hover:bg-gray-100"
+                            >
+                              <img src={PrintIcon} alt="Export" className="h-[18px] w-[18px] object-contain" />
+                              <span className="outfit-500 text-[13px]">Export</span>
+                            </button>
+                            {parsedRoleId === 3 && (
+                              <Link
+                                to="/admin/enhancement"
+                                onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                                className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${
+                                  isActive("/admin/enhancement") ? "bg-orange-50 text-orange-600" : "text-gray-600"
+                                }`}
+                              >
+                                <i className="bx bx-bar-chart-square text-[18px]"></i>
+                                <span className="outfit-500 text-[13px]">Overview</span>
+                              </Link>
+                            )}
+
+                            {(parsedRoleId === 4 || parsedRoleId === 5) && (
+                              <Link
+                                to="/reports"
+                                onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                                className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${isActive("/reports") ? "bg-orange-50 text-orange-600" : "text-gray-600"}`}
+                              >
+                                <i className="bx bx-clipboard text-[18px]"></i>
+                                <span className="outfit-500 text-[13px]">Reports</span>
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      to={item.path}
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive(item.path)
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span
+                        className={`mb-1 flex items-center justify-center ${
+                          item.home
+                            ? "h-10 w-10 rounded-full bg-orange-500 shadow-lg"
+                            : "h-6 w-6"
                         }`}
                       >
-                        <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        {item.image ? (
                           <img
-                            src={
-                              isActive(
-                                parsedRoleId === 2
-                                  ? "/faculty/subjects"
-                                  : parsedRoleId === 3
-                                    ? "/program-chair/subjects"
-                                    : parsedRoleId === 4
-                                      ? "/dean/subjects"
-                                      : "/asso-dean/subjects",
-                              )
-                                ? SubjectsIconH
-                                : SubjectsIcon
-                            }
-                            alt="Subjects"
-                            className="h-6 w-6 object-contain"
+                            src={isActive(item.path) ? item.activeImage : item.image}
+                            alt={item.label}
+                            className="h-5 w-5 object-contain"
                           />
-                        </span>
-                        <span className="outfit-500 text-xs">Subjects</span>
-                      </Link>
-                    </div>
+                        ) : (
+                          <i
+                            className={`${item.icon} text-[20px] ${
+                              item.home ? "text-white" : ""
+                            }`}
+                          ></i>
+                        )}
+                      </span>
+                      <span className="outfit-500 text-[9px] leading-4 text-center relative">
+                        {item.label}
+                        {item.label === "Users" && newUsersCount > 0 && (
+                          <span className="absolute -top-6 right-[-14px] flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                            {newUsersCount > 99 ? "99+" : newUsersCount}
+                          </span>
+                        )}
+                      </span>
+                    </Link>
                   )}
-                </>
-              )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -588,20 +925,13 @@ const Sidebar = ({
       </>
     );
   }
-  // Desktop sidebar
-  const handleSupportClick = () => {
-    window.open(
-      "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&pli=1&gid=1756766640#gid=1756766640",
-      "_blank",
-    );
-  };
 
   return (
     <>
-      {/* Sidebar */}
+      {/* Sidebar yes*/}
       <div
         ref={sidebarRef}
-        className={`border-color fixed top-0 left-0 z-55 h-[100vh] border-r border-gray-200 bg-white ${
+        className={`border-color fixed top-0 left-0 z-55 flex h-[100vh] flex-col border-r border-gray-200 bg-white ${
           isUsersPage ? "w-[63px]" : "w-[220px]"
         }`}
       >
@@ -649,7 +979,7 @@ const Sidebar = ({
             {/* Chevron icon */}
             {!isUsersPage && (
               <i
-                className={`bx shadow-s flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-[23px] leading-none text-gray-500 ${userDropdownOpen ? "bx-chevron-left" : "bx-chevron-right"} `}
+                className={`bx flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-[23px] leading-none text-gray-500 shadow-sm ${userDropdownOpen ? "bx-chevron-left" : "bx-chevron-right"} `}
               ></i>
             )}
           </div>
@@ -704,18 +1034,19 @@ const Sidebar = ({
 
               <button
                 onClick={() => {
-                  alert("Dark Mode is coming soon");
+                  setUserDropdownOpen(false);
+                  alert("The dark mode feature is still under development.");
                 }}
                 className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
               >
-                <i
-                  className={`bx ${isDarkMode ? "bx-sun" : "bx-moon"} mr-2 text-[16px]`}
-                ></i>{" "}
-                Dark Mode
+                <i className="bx bx-moon mr-2 text-[16px]"></i> Dark Mode
               </button>
 
               <button
-                onClick={() => setShowLogoutModal(true)}
+                onClick={() => {
+                  setUserDropdownOpen(false);
+                  setShowLogoutModal(true);
+                }}
                 className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
               >
                 <i className="bx bx-arrow-out-right-square-half mr-2 text-[16px]"></i>{" "}
@@ -733,10 +1064,12 @@ const Sidebar = ({
           <div className="mt-2 mb-4 h-[1.5px] w-full bg-gray-200"></div>{" "}
           {!isUsersPage && (
             <div className="outfit-500 px-2 text-[12px] font-semibold text-gray-500">
-              MAIN{" "}
+              MAIN{" "} 
             </div>
           )}
         </div>
+        
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-3">
         {/* Sidebar menu items */}
         <ul className="mt-2 mb-3 space-y-[5px] px-0">
           {menuItems.map((item, index) => {
@@ -852,13 +1185,18 @@ const Sidebar = ({
 
                       {!isUsersPage && (
                         <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
+                          className={`outfit-500 text-[15px] whitespace-nowrap flex items-center gap-2 ${
                             isItemActive
                               ? "font-[18px] text-black"
                               : "text-gray-600"
                           }`}
                         >
                           {item.label}
+                          {item.label === "Users" && newUsersCount > 0 && (
+                            <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
+                              {newUsersCount > 99 ? "99+" : newUsersCount}
+                            </span>
+                          )}
                         </span>
                       )}
                     </div>
@@ -872,7 +1210,66 @@ const Sidebar = ({
               </li>
             );
           })}
+          {/* ANALYTICS — students only */}
+          {parsedRoleId === 1 && (
+              <ul className="mt-2 space-y-[5px] px-0">
+
+                {/* Analytics popup trigger */}
+                <li className="group relative" ref={analyticsRef}>
+                  <span
+                    className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
+                      showAnalyticsPopup ? "bg-orange-500" : "bg-transparent"
+                    }`}
+                  ></span>
+                  <div className="px-3">
+                    <button
+                      onClick={() => setShowAnalyticsPopup((prev) => !prev)}
+                      className={`flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 ${
+                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                      } ${showAnalyticsPopup ? "bg-gray-100" : ""}`}
+                    >
+                      <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-3"}`}>
+                        <i className={`bx bx-bar-chart-alt-2 flex-shrink-0 ${isUsersPage ? "text-[20px]" : "text-[18px]"} ${showAnalyticsPopup ? "text-orange-500" : "text-gray-600"}`}></i>
+                        {!isUsersPage && (
+                          <span className={`outfit-500 text-[15px] whitespace-nowrap ${showAnalyticsPopup ? "text-black" : "text-gray-600"}`}>
+                            Analytics
+                          </span>
+                        )}
+                        {!isUsersPage && (
+                          <i className={`bx ${showAnalyticsPopup ? "bx-chevron-up" : "bx-chevron-down"} ml-auto text-[16px] text-gray-400`}></i>
+                        )}
+                      </div>
+                    </button>
+
+                    {/* new added: Popup box */}
+                    {showAnalyticsPopup && (
+                      <div className="absolute left-0 top-full z-[70] mt-1 w-[210px] rounded-2xl border border-gray-200 bg-white shadow-xl p-3">
+                        {/* Arrow pointer — now points UP */}
+                        <div className="absolute top-[-7px] left-4 h-3 w-3 rotate-45 border-t border-l border-gray-200 bg-white"></div>
+
+                        <div className="flex flex-col gap-1">
+                          {analyticsMenuItems.map((item) => (
+                            <Link
+                              key={item.label}
+                              to={item.path}
+                              onClick={() => { handleMenuClick(); }}
+                              className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${
+                                isActive(item.path) ? "bg-orange-50 text-orange-600" : "text-gray-600"
+                              }`}
+                            >
+                              <i className={`${item.icon} text-[18px]`}></i>
+                              <span className="outfit-500 text-[13px]">{item.label}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              </ul>
+          )}
         </ul>
+
         {/* Different Dropdowns for Different Roles*/}
         {(parsedRoleId === 4 || parsedRoleId === 5) && (
           <div className="flex flex-col space-y-[5px]">
@@ -953,6 +1350,32 @@ const Sidebar = ({
                   </li>
                 );
               })}
+
+              {/* Enhancement link - admin only */}
+              <li className="group relative">
+                <span className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${isActive("/admin/enhancement") ? "bg-orange-500" : "bg-transparent"}`}></span>
+                <div className="px-3">
+                  <button
+                    onClick={() => { setActiveMenu("Enhancement"); navigate("/admin/enhancement"); }}
+                    className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"} ${activeMenu === "Enhancement" ? "bg-gray-100 text-orange-600" : ""}`}
+                  >
+                    <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-[10px]"}`}>
+                      <i className={`bx bx-bar-chart-square ${isUsersPage ? "text-[20px]" : "text-[20px]"} flex-shrink-0 ${activeMenu === "Enhancement" ? "text-orange-500" : "text-gray-600"}`}></i>
+                      {!isUsersPage && (
+                        <span className={`outfit-500 text-[15px] whitespace-nowrap ${activeMenu === "Enhancement" ? "text-black" : "text-gray-600"}`}>
+                          Overview
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                  {isUsersPage && (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      Overview
+                    </span>
+                  )}
+                </div>
+              </li>
+
               {/* Export button below Subjects */}
               {parsedRoleId >= 3 && (
                 <li className="group relative">
@@ -1012,58 +1435,31 @@ const Sidebar = ({
                   </div>
                 </li>
               )}
-              {/* Reports button below Print */}
+              
+              {/* Reports button */}
               <li className="group relative">
                 <span
                   className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                    activeMenu === "Reports"
-                      ? "bg-orange-500"
-                      : "bg-transparent"
+                    isActive("/reports") ? "bg-orange-500" : "bg-transparent"
                   }`}
                 ></span>
                 <div className="px-3">
-                  <button
-                    onClick={() => {
-                      setActiveMenu("Reports");
-                      navigate("/reports");
-                    }}
+                  <Link
+                    to="/reports"
+                    onClick={handleMenuClick}
                     className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage
-                        ? "justify-center py-[10px]"
-                        : "justify-start py-[6px]"
-                    } ${
-                      activeMenu === "Reports"
-                        ? "bg-gray-100 text-orange-600"
-                        : ""
-                    }`}
+                      isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                    } ${isActive("/reports") ? "bg-gray-100 text-orange-600" : ""}`}
                   >
-                    <div
-                      className={`flex items-center ${
-                        isUsersPage ? "justify-center" : "ml-3 gap-[10px]"
-                      }`}
-                    >
-                      <img
-                        src={
-                          activeMenu === "Reports" ? ReportsIconH : ReportsIcon
-                        }
-                        alt="Reports"
-                        className={`${
-                          isUsersPage ? "size-[20px]" : "size-[20px]"
-                        } flex-shrink-0`}
-                      />
+                    <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-[10px]"}`}>
+                      <i className={`bx bx-clipboard flex-shrink-0 text-[20px] ${isActive("/reports") ? "text-orange-500" : "text-gray-600"}`}></i>
                       {!isUsersPage && (
-                        <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
-                            activeMenu === "Reports"
-                              ? "text-black"
-                              : "text-gray-600"
-                          }`}
-                        >
+                        <span className={`outfit-500 text-[15px] whitespace-nowrap ${isActive("/reports") ? "text-black" : "text-gray-600"}`}>
                           Reports
                         </span>
                       )}
                     </div>
-                  </button>
+                  </Link>
                   {isUsersPage && (
                     <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
                       Reports
@@ -1071,6 +1467,7 @@ const Sidebar = ({
                   )}
                 </div>
               </li>
+
             </ul>
           </div>
         )}
@@ -1151,6 +1548,9 @@ const Sidebar = ({
                   </div>
                 </li>
               ))}
+
+
+
               {/* Export button below Subjects */}
               {parsedRoleId >= 3 && (
                 <li className="group relative">
@@ -1206,61 +1606,34 @@ const Sidebar = ({
                   </div>
                 </li>
               )}
-              {/* Reports button below Print */}
+
+              {/* Enhancement link - program chair */}
               <li className="group relative">
-                <span
-                  className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                    activeMenu === "Reports"
-                      ? "bg-orange-500"
-                      : "bg-transparent"
-                  }`}
-                ></span>
+                <span className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${isActive("/admin/enhancement") ? "bg-orange-500" : "bg-transparent"}`}></span>
                 <div className="px-3">
                   <button
-                    onClick={() => {
-                      setActiveMenu("Reports");
-                      navigate("/reports");
-                    }}
-                    className={`group flex w-full cursor-pointer items-center rounded-lg py-[6px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage ? "justify-center" : "justify-start"
-                    } ${
-                      activeMenu === "Reports"
-                        ? "bg-gray-100 text-orange-600"
-                        : ""
-                    }`}
+                    onClick={() => { setActiveMenu("Enhancement"); navigate("/admin/enhancement"); }}
+                    className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"} ${activeMenu === "Enhancement" ? "bg-gray-100 text-orange-600" : ""}`}
                   >
-                    <div
-                      className={`flex items-center ${
-                        isUsersPage ? "justify-center" : "ml-3 gap-[10px]"
-                      }`}
-                    >
-                      <img
-                        src={
-                          activeMenu === "Reports" ? ReportsIconH : ReportsIcon
-                        }
-                        alt="Reports"
-                        className="size-[20px] flex-shrink-0"
-                      />
+                    <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-[10px]"}`}>
+                      <i className={`bx bx-bar-chart-square text-[20px] flex-shrink-0 ${activeMenu === "Enhancement" ? "text-orange-500" : "text-gray-600"}`}></i>
                       {!isUsersPage && (
-                        <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
-                            activeMenu === "Reports"
-                              ? "text-black"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          Reports
+                        <span className={`outfit-500 text-[15px] whitespace-nowrap ${activeMenu === "Enhancement" ? "text-black" : "text-gray-600"}`}>
+                          Overview
                         </span>
                       )}
                     </div>
                   </button>
                   {isUsersPage && (
                     <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-                      Reports
+                      Overview 
                     </span>
                   )}
                 </div>
               </li>
+
+
+
             </ul>
           </div>
         )}
@@ -1340,6 +1713,34 @@ const Sidebar = ({
                   </div>
                 </li>
               ))}
+
+
+              {/* Enhancement link - faculty */}
+              <li className="group relative">
+                <span className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${isActive("/admin/enhancement") ? "bg-orange-500" : "bg-transparent"}`}></span>
+                <div className="px-3">
+                  <button
+                    onClick={() => { setActiveMenu("Enhancement"); navigate("/admin/enhancement"); }}
+                    className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"} ${activeMenu === "Enhancement" ? "bg-gray-100 text-orange-600" : ""}`}
+                  >
+                    <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-[10px]"}`}>
+                      <i className={`bx bx-bar-chart-square text-[20px] flex-shrink-0 ${activeMenu === "Enhancement" ? "text-orange-500" : "text-gray-600"}`}></i>
+                      {!isUsersPage && (
+                        <span className={`outfit-500 text-[15px] whitespace-nowrap ${activeMenu === "Enhancement" ? "text-black" : "text-gray-600"}`}>
+                          Overview
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                  {isUsersPage && (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      Overview
+                    </span>
+                  )}
+                </div>
+              </li>
+
+
               {/* Export button below Subjects */}
               {parsedRoleId >= 3 && (
                 <li className="group relative">
@@ -1399,81 +1800,295 @@ const Sidebar = ({
                   </div>
                 </li>
               )}
-              {/* Reports button below Print */}
-              <li className="group relative">
-                <span
-                  className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                    activeMenu === "Reports"
-                      ? "bg-orange-500"
-                      : "bg-transparent"
-                  }`}
-                ></span>
-                <div className="px-3">
-                  <button
-                    onClick={() => {
-                      setActiveMenu("Reports");
-                      navigate("/reports");
-                    }}
-                    className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage
-                        ? "justify-center py-[10px]"
-                        : "justify-start py-[6px]"
-                    } ${
-                      activeMenu === "Reports"
-                        ? "bg-gray-100 text-orange-600"
-                        : ""
-                    }`}
-                  >
-                    <div
-                      className={`flex items-center ${
-                        isUsersPage ? "justify-center" : "ml-3 gap-[10px]"
-                      }`}
-                    >
-                      <img
-                        src={
-                          activeMenu === "Reports" ? ReportsIconH : ReportsIcon
-                        }
-                        alt="Reports"
-                        className={`${
-                          isUsersPage ? "size-[20px]" : "size-[20px]"
-                        } flex-shrink-0`}
-                      />
-                      {!isUsersPage && (
-                        <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
-                            activeMenu === "Reports"
-                              ? "text-black"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          Reports
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                  {isUsersPage && (
-                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-                      Reports
-                    </span>
-                  )}
-                </div>
-              </li>
+              
+
             </ul>
           </div>
         )}
+        
+        </div>
         {/* Support button at the bottom */}
-        <div className="absolute bottom-4 left-0 w-full">
-          <div className="px-3">
+        <div className="mt-auto border-t border-gray-200 bg-white px-3 pb-1" style={{ marginTop: 'auto', paddingTop: '0' }}>
+          {/* Notifications popup trigger */}
+          <div className="relative" data-notifications-popup>
             <button
-              onClick={() => {
-                setActiveMenu("Support");
-                handleSupportClick();
-              }}
+              onClick={() => setActiveMenu(activeMenu === "Notifications" ? null : "Notifications")}
+              className={`group mb-0 flex w-full cursor-pointer items-center rounded-lg py-[5px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
+                isUsersPage ? "justify-center" : "justify-start"
+              } ${activeMenu === "Notifications" ? "bg-gray-100 text-orange-600" : ""}`}
+            >
+              <div
+                className={`flex items-center relative ${
+                  isUsersPage ? "justify-center" : "ml-3 gap-[10px]"
+                }`}
+              >
+                <div className="relative flex items-center justify-center">
+                  <i
+                    className={`bx ${
+                      activeMenu === "Notifications"
+                        ? "bxs-bell text-orange-600 animate-swing"
+                        : "bx-bell text-gray-500 group-hover:text-orange-500"
+                    } text-[20px] flex-shrink-0`}
+                  />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                {!isUsersPage && (
+                  <span className="outfit-500 text-[15px] whitespace-nowrap text-gray-600">
+                    Notifications
+                  </span>
+                )}
+              </div>
+            </button>
+
+            {/* Notifications Popup */}
+            {activeMenu === "Notifications" && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/20 pointer-events-none">
+              <div className="pointer-events-auto w-[520px] max-w-[95vw] rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl flex flex-col max-h-[80vh]">
+                
+                {/* Header with Tabs */}
+                <div className="flex items-center justify-between border-b border-gray-100 pb-0 mb-0">
+                  {/* Tabs Section */}
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => {
+                        setActiveNotificationTab("notifications");
+                        setSelectedNotification(null);
+                      }}
+                      className={`outfit-600 text-sm px-4 py-3 font-medium flex items-center gap-2 transition-colors border-b-2 ${
+                        activeNotificationTab === "notifications"
+                          ? "text-orange-600 border-b-orange-600"
+                          : "text-gray-600 border-b-transparent hover:text-gray-800"
+                      }`}
+                    >
+                      <i className="bx bx-bell text-base" />
+                      <span>Notifications</span>
+                      {unreadCount > 0 && (
+                        <span className="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </button>
+                    {parsedRoleId > 1 && (
+                      <button
+                        onClick={() => {
+                          setActiveNotificationTab("history");
+                          fetchSentAnnouncements(1);
+                        }}
+                        className={`outfit-600 text-sm px-4 py-3 font-medium transition-colors border-b-2 ${
+                          activeNotificationTab === "history"
+                            ? "text-orange-600 border-b-orange-600"
+                            : "text-gray-600 border-b-transparent hover:text-gray-800"
+                        }`}
+                      >
+                        History
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Action Buttons Section */}
+                  <div className="flex items-center gap-2">
+                    {activeNotificationTab === "notifications" && unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="outfit-500 text-xs font-bold text-orange-500 hover:text-orange-600 transition-colors px-2 py-1 rounded hover:bg-orange-50"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                    {activeNotificationTab === "history" && sentAnnouncements.length > 0 && parsedRoleId > 1 && (
+                      <button
+                        onClick={handleDeleteAllAnnouncements}
+                        className="outfit-500 text-xs font-bold text-red-500 hover:text-red-600 transition-colors px-2 py-1 rounded hover:bg-red-50"
+                        title="Delete all announcements"
+                      >
+                        Delete all
+                      </button>
+                    )}
+                    {parsedRoleId > 1 && (
+                      <button
+                        onClick={() => setShowAddAnnouncementModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white transition active:scale-95 shadow-sm outfit-600 text-sm"
+                        title="Add announcement"
+                      >
+                        <i className="bx bx-plus text-base" />
+                        <span>Add</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Content Container */}
+                <div className="overflow-y-auto pr-1 flex-1 flex flex-col gap-3 scrollbar-thin">
+                  {/* Notifications Tab Content */}
+                  {activeNotificationTab === "notifications" && (
+                    <>
+                      {notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                          <i className="bx bx-bell-off text-4xl mb-2 text-gray-300" />
+                          <p className="outfit-500 text-base text-gray-500">No notifications yet</p>
+                        </div>
+                      ) : (
+                        notifications.map((item) => {
+                          let iconClass = "bx-bell";
+                          let bgClass = "bg-blue-50 text-blue-500";
+                          
+                          if (item.type === "lesson" || item.type === "lesson_available") {
+                            iconClass = "bx-book-open";
+                            bgClass = "bg-orange-50 text-orange-500";
+                          } else if (item.type === "quiz_result") {
+                            iconClass = "bx-file";
+                            bgClass = "bg-green-50 text-green-500";
+                          } else if (item.type === "achievement" || item.type === "milestone") {
+                            iconClass = "bx-trophy";
+                            bgClass = "bg-yellow-50 text-yellow-600";
+                          } else if (item.type === "announcement" || item.type === "system_announcement") {
+                            iconClass = "bx-megaphone";
+                            bgClass = "bg-purple-50 text-purple-500";
+                          }
+
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => handleNotificationClick(item)}
+                              className={`flex items-start gap-4 rounded-2xl p-3.5 cursor-pointer transition-all duration-200 border text-left ${
+                                item.is_read
+                                  ? "border-transparent hover:bg-gray-50"
+                                  : "border-orange-50 bg-orange-50/20 hover:bg-orange-50/45"
+                              }`}
+                            >
+                              <div className={`flex size-10 flex-shrink-0 items-center justify-center rounded-full ${bgClass}`}>
+                                <i className={`bx ${iconClass} text-xl`} />
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <h4 className={`outfit-700 text-[15px] font-bold truncate ${item.is_read ? "text-gray-600" : "text-gray-900"}`}>
+                                    {item.title}
+                                  </h4>
+                                  {!item.is_read && (
+                                    <span className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-500" />
+                                  )}
+                                </div>
+                                <p className="outfit-400 text-sm text-gray-600 line-clamp-2 mt-0.5 leading-relaxed">
+                                  {item.message}
+                                </p>
+
+                                {item.sender_name && (
+                                  <span className="outfit-500 mt-1 inline-flex items-center gap-1 text-[11px] text-purple-500">
+                                    <i className="bx bx-user text-[12px]"></i>
+                                    {item.sender_name}
+                                    {item.sender_role && (
+                                      <span className="text-gray-400">· {item.sender_role}</span>
+                                    )}
+                                  </span>
+                                )}
+
+                                <div className="flex items-center justify-between mt-2">
+                                  <span className="outfit-400 text-xs text-gray-500">
+                                    {formatTimeAgo(item.created_at)}
+                                  </span>
+                                  <button
+                                    onClick={(e) => handleDeleteNotification(item.id, e)}
+                                    className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors p-1.5 rounded-md"
+                                    title="Delete notification"
+                                  >
+                                    <i className="bx bx-trash text-[16px]"></i>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </>
+                  )}
+
+                  {/* History Tab Content */}
+                  {activeNotificationTab === "history" && (
+                    <>
+                      {loadingSent ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                          <div className="animate-spin">
+                            <i className="bx bx-loader-alt text-4xl text-gray-300" />
+                          </div>
+                          <p className="outfit-500 text-base text-gray-500 mt-2">Loading announcements...</p>
+                        </div>
+                      ) : sentAnnouncements.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                          <i className="bx bx-inbox text-4xl mb-2 text-gray-300" />
+                          <p className="outfit-500 text-base text-gray-500">No announcements sent yet</p>
+                        </div>
+                      ) : (
+                        sentAnnouncements.map((ann) => (
+                          <div
+                            key={ann.id}
+                            className="flex items-start gap-4 rounded-2xl p-3.5 bg-purple-50/30 border border-purple-100 hover:bg-purple-50/60 transition-all duration-200"
+                          >
+                            <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600">
+                              <i className="bx bx-megaphone text-xl" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1.5">
+                                <h4 className="outfit-700 text-[15px] font-bold text-gray-900 truncate">
+                                  {ann.title}
+                                </h4>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium outfit-600">
+                                  Sent
+                                </span>
+                              </div>
+                              <p className="outfit-400 text-sm text-gray-600 line-clamp-2 mt-0.5 leading-relaxed">
+                                {ann.message}
+                              </p>
+
+                              {ann.target_type && (
+                                <span className="outfit-500 mt-1 inline-flex items-center gap-1 text-[11px] text-gray-500">
+                                  <i className="bx bx-target-lock text-[12px]"></i>
+                                  Target: <span className="capitalize">{ann.target_type.replace(/_/g, " ")}</span>
+                                </span>
+                              )}
+
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="outfit-400 text-xs text-gray-500">
+                                  {formatTimeAgo(ann.created_at)}
+                                </span>
+                                <button
+                                  onClick={() => handleDeleteAnnouncement(ann.id)}
+                                  className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors p-1.5 rounded-md"
+                                  title="Delete announcement"
+                                >
+                                  <i className="bx bx-trash text-[16px]"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+              </div>
+            )}
+
+            {isUsersPage && (
+              <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 z-[100]">
+                Notifications
+              </span>
+            )}
+          </div>
+
+          {/* Support popup trigger */}
+          <div className="relative" data-support-popup>
+            <button
+              onClick={() => setActiveMenu(activeMenu === "Support" ? null : "Support")}
               className={`group mb-2 flex w-full cursor-pointer items-center rounded-lg py-[8px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
                 isUsersPage ? "justify-center" : "justify-start"
-              } ${
-                activeMenu === "Support" ? "bg-gray-100 text-orange-600" : ""
-              }`}
+              } ${activeMenu === "Support" ? "bg-gray-100 text-orange-600" : ""}`}
             >
               <div
                 className={`flex items-center ${
@@ -1492,10 +2107,57 @@ const Sidebar = ({
                 )}
               </div>
             </button>
+
+            {/* Popup */}
+            {activeMenu === "Support" && (
+              <div className="absolute bottom-full left-0 z-[70] mb-2 w-[200px] rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
+                {/* Arrow pointer */}
+                <div className="absolute -bottom-[7px] left-4 h-3 w-3 rotate-45 border-r border-b border-gray-200 bg-white"></div>
+                  <div className="flex flex-col gap-1">
+                    {parsedRoleId >= 2 && (
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        navigate("/support?tab=reports");
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-600 transition-colors hover:bg-gray-100"
+                    >
+                      <i className="bx bx-clipboard text-[18px]"></i>
+                      <span className="outfit-500 text-[13px]">All Reports</span>
+                    </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        navigate("/support?tab=help");
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-600 transition-colors hover:bg-gray-100"
+                    >
+                      <i className="bx bx-help-circle text-[18px]"></i>
+                      <span className="outfit-500 text-[13px]">Help & FAQs</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        navigate("/support?tab=tickets");
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-600 transition-colors hover:bg-gray-100"
+                    >
+                      <i className="bx bx-receipt text-[18px]"></i>
+                      <span className="outfit-500 text-[13px]">
+                        My Tickets
+                      </span>
+                    </button>
+
+                  </div>
+              </div>
+            )}
           </div>
           <div className="px-3">
             <div className="mb-2 h-[1.5px] w-full bg-gray-200"></div>{" "}
-            <button
+              <button
               onClick={() => {
                 navigate("/team-caps");
               }}
@@ -1539,6 +2201,296 @@ const Sidebar = ({
           <AppVersion />
         </div>*/}
       </div>
+
+      {/* Notification Detail Modal */}
+      {selectedNotification && (
+        <div className="lightbox-bg fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="animate-fade-in-up flex w-[90vw] max-w-[560px] flex-col rounded-2xl bg-white p-8 shadow-2xl relative border border-gray-100">
+            {/* Close button (X) */}
+            <button
+              onClick={() => setSelectedNotification(null)}
+              className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+            >
+              <i className="bx bx-x text-2xl"></i>
+            </button>
+
+            {/* Icon & Title */}
+            <div className="flex items-center gap-4 mb-4 pr-6">
+              <div className={`flex size-14 flex-shrink-0 items-center justify-center rounded-full ${
+                (selectedNotification.type === "lesson" || selectedNotification.type === "lesson_available") ? "bg-orange-50 text-orange-500" :
+                selectedNotification.type === "quiz_result" ? "bg-green-50 text-green-500" :
+                (selectedNotification.type === "achievement" || selectedNotification.type === "milestone") ? "bg-yellow-50 text-yellow-600" :
+                "bg-purple-50 text-purple-500"
+              }`}>
+                <i className={`bx ${
+                  (selectedNotification.type === "lesson" || selectedNotification.type === "lesson_available") ? "bx-book-open" :
+                  selectedNotification.type === "quiz_result" ? "bx-file" :
+                  (selectedNotification.type === "achievement" || selectedNotification.type === "milestone") ? "bx-trophy" :
+                  "bx-megaphone"
+                } text-3xl`} />
+              </div>
+              <div className="min-w-0">
+                <span className="outfit-500 text-xs text-gray-400 font-semibold uppercase tracking-wider block">
+                  {selectedNotification.type ? selectedNotification.type.replace(/_/g, ' ') : "Notification"}
+                </span>
+                <h3 className="outfit-700 text-base font-bold text-gray-900 leading-snug mt-0.5 break-words">
+                  {selectedNotification.title}
+                </h3>
+                {selectedNotification?.sender_role && (
+                  <p className="outfit-400 text-sm text-gray-500">Sent by {getRoleName(selectedNotification.sender_role)}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-[1px] w-full bg-gray-100 mb-5"></div>
+
+            {/* Sender Information */}
+            {selectedNotification.sender_name && (
+              <div className="mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-600">
+                  <i className="bx bx-user-circle text-[14px]"></i>
+                  From: {selectedNotification.sender_name}
+                  {selectedNotification.sender_role && (
+                    <span className="text-purple-400">· {selectedNotification.sender_role}</span>
+                  )}
+                </span>
+              </div>
+            )}
+
+            {/* Message Body */}
+            <div className="mb-6 max-h-[40vh] overflow-y-auto pr-1 scrollbar-thin">
+              <p className="outfit-400 text-sm text-gray-600 leading-relaxed whitespace-pre-line break-words">
+                {selectedNotification.message}
+              </p>
+              <span className="outfit-400 text-sm text-gray-400 mt-4 block">
+                Received {formatTimeAgo(selectedNotification.created_at)}
+              </span>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={(e) => handleDeleteNotification(selectedNotification.id, e)}
+                className="outfit-500 cursor-pointer rounded-lg border border-red-200 text-red-600 hover:bg-red-50 px-4 py-1.5 text-sm font-semibold transition active:scale-98"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setSelectedNotification(null)}
+                className="outfit-500 cursor-pointer rounded-lg bg-orange-500 hover:bg-orange-700 text-white px-5 py-1.5 text-sm font-semibold transition active:scale-98 shadow-md"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Announcement Modal */}
+      {showAddAnnouncementModal && (
+        <div className="lightbox-bg fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <form
+            onSubmit={handleCreateAnnouncement}
+            className="animate-fade-in-up flex w-[90vw] max-w-[500px] flex-col rounded-2xl bg-white p-7 shadow-2xl relative border border-gray-100"
+          >
+            {/* Close button (X) */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddAnnouncementModal(false);
+                setAnnouncementTitle("");
+                setAnnouncementMessage("");
+                setSelectedProgramId("");
+                setSelectedClassId("");
+              }}
+              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+            >
+              <i className="bx bx-x text-2xl"></i>
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3.5 mb-4">
+              <div className="flex size-11 flex-shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                <i className="bx bx-megaphone text-2xl" />
+              </div>
+              <div>
+                <h3 className="outfit-700 text-lg font-bold text-gray-900 leading-snug">
+                  Create Announcement
+                </h3>
+                <span className="outfit-400 text-xs text-gray-400 block mt-0.5">
+                  {parsedRoleId === 4 || parsedRoleId === 5 ? "Send announcement" :
+                   parsedRoleId === 3 ? `Send announcement to students in ${userInfo?.programName || "assigned program"}` :
+                   "Send announcement to all your enrolled students"}
+                </span>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-[1px] w-full bg-gray-100 mb-5"></div>
+
+            {/* Inputs */}
+            <div className="space-y-4 mb-6">
+              {/* Target Selector */}
+              {parsedRoleId === 4 || parsedRoleId === 5 ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                      Target Audience
+                    </label>
+                    <select
+                      value={targetType}
+                      onChange={(e) => {
+                        setTargetType(e.target.value);
+                        setSelectedProgramId("");
+                      }}
+                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                    >
+                      <option value="all">All Users</option>
+                      <option value="role_student">All Students</option>
+                      <option value="role_faculty">All Faculty</option>
+                      <option value="role_chair">All Program Chairs</option>
+                      <option value="program">Students in a Specific Program</option>
+                    </select>
+                  </div>
+
+                  {targetType === "program" && (
+                    <div className="animate-fade-in">
+                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                        Select Program
+                      </label>
+                      <select
+                        required
+                        value={selectedProgramId}
+                        onChange={(e) => setSelectedProgramId(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                      >
+                        <option value="">-- Select Program (e.g. CpE, ECE, EE, CE) --</option>
+                        {availablePrograms.map((prog) => (
+                          <option key={prog.programID} value={prog.programID}>
+                            {prog.programName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              ) : parsedRoleId === 2 ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                      Target Audience
+                    </label>
+                    <select
+                      value={targetType}
+                      onChange={(e) => {
+                        setTargetType(e.target.value);
+                        setSelectedClassId("");
+                      }}
+                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                    >
+                      <option value="enrolled">All My Enrolled Students</option>
+                      <option value="class_students">Students in a Specific Class</option>
+                    </select>
+                  </div>
+
+                  {targetType === "class_students" && (
+                    <div className="animate-fade-in">
+                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                        Select Class
+                      </label>
+                      <select
+                        required
+                        value={selectedClassId}
+                        onChange={(e) => setSelectedClassId(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                      >
+                        <option value="">-- Select Class --</option>
+                        {availableClasses.map((cls) => (
+                          <option key={cls.classID} value={cls.classID}>
+                            {cls.className} ({cls.classCode})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              ) : parsedRoleId === 3 ? (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                    Target Audience
+                  </label>
+                  <div className="w-full rounded-lg border border-orange-200 bg-orange-50/50 px-4 py-2.5 text-sm text-orange-800 font-medium">
+                    Students in your program: {userInfo?.programName || "Assigned Program"}
+                  </div>
+                </div>
+              ) : null}
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Upcoming Holiday or Class Schedule Change"
+                  value={announcementTitle}
+                  onChange={(e) => setAnnouncementTitle(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                  Message
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Enter details of the announcement..."
+                  value={announcementMessage}
+                  onChange={(e) => setAnnouncementMessage(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200 resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddAnnouncementModal(false);
+                  setAnnouncementTitle("");
+                  setAnnouncementMessage("");
+                  setSelectedProgramId("");
+                  setSelectedClassId("");
+                }}
+                className="outfit-500 cursor-pointer rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 px-5 py-2 text-sm font-semibold transition active:scale-98"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isAnnouncing || !announcementTitle.trim() || !announcementMessage.trim()}
+                className="outfit-500 cursor-pointer rounded-lg bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2 text-sm font-semibold transition active:scale-98 shadow-md flex items-center gap-1.5"
+              >
+                {isAnnouncing ? (
+                  <>
+                    <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                    Posting...
+                  </>
+                ) : (
+                  "Post"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Sent Announcements (History) Modal - Removed, integrated into Notifications popup tabs */}
+
       <PrintExamModal
         isOpen={showPrintModal === true}
         onClose={() => setShowPrintModal(false)}

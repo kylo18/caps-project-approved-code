@@ -8,14 +8,21 @@ use Modules\Users\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\UserApprovedMail;
+use App\Mail\UserDisapprovedMail;
 use Illuminate\Validation\Rule;
-use Carbon\Carbon;
+use Modules\Users\Services\EmailNotificationService;
 
 class UserController extends Controller
 {
+    protected $emailService;
+
+    public function __construct(EmailNotificationService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
+
     /**
      * Get all active users (Only Admins can access this).
      */
@@ -23,12 +30,12 @@ class UserController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             // Check if user is authenticated
             if (!$user) {
                 return response()->json(['message' => 'Unauthenticated'], 401);
             }
-            
+
             // Check if user has appropriate role
             if (!in_array($user->roleID, [2, 3, 4, 5])) {
                 return response()->json(['message' => 'Unauthorized: Insufficient permissions'], 403);
@@ -42,10 +49,16 @@ class UserController extends Controller
                     ], 403);
                 }
             }
-            
+
             $query = $this->buildUserQuery($request);
+
+            if ($request->input('ids_only') == '1') {
+                $ids = $query->pluck('userID')->toArray();
+                return response()->json(['userIDs' => $ids, 'total' => count($ids)], 200);
+            }
+
             $pagination = $this->paginateResults($query, $request);
-            
+
             return response()->json([
                 'users' => $pagination['users'],
                 'total' => $pagination['total'],
@@ -112,127 +125,36 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * Send a user code reset link to the user's email.
-     * Mirrors the forgot-password flow but for updating userCode.
-     */
-    public function sendUserCodeResetLinkEmail(Request $request)
-    {
-        try {
-            $request->validate(['email' => 'required|email']);
-
-            Log::info('Attempting to send user code reset link to: ' . $request->email);
-
-            $user = User::where('email', $request->email)->first();
-
-            if (!$user) {
-                return response()->json([
-                    'message' => 'Unable to send reset link. Please check if the email is registered.',
-                ], 422);
-            }
-
-            if ($this->isUserCodeResetThrottled($request->email)) {
-                return response()->json([
-                    'message' => 'Please wait a moment before requesting another user code reset link.',
-                ], 429);
-            }
-
-            $token = $this->createUserCodeResetToken($user);
-            $user->sendUserCodeResetNotification($token);
-
-            Log::info('User code reset link sent to: ' . $request->email);
-
-            return response()->json([
-                'message' => 'User code reset link has been sent to your email.',
-            ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Throwable $e) {
-            Log::error('Error sending user code reset link', [
-                'email' => $request->input('email'),
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'message' => 'An error occurred while sending the user code reset link.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
-            ], 500);
+        // Fetch remarks and curriculum for students
+        $remarks = null;
+        $curriculum = null;
+        if ($user->roleID == 1) {
+            $remarksRow = \DB::table('student_remarks')
+                ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
+                ->where('student_remarks.userID', $user->userID)
+                ->select('remarks.remarksType')
+                ->first();
+            $remarks = $remarksRow ? $remarksRow->remarksType : null;
+            $curriculumRow = \DB::table('student_curricula')
+                ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
+                ->where('student_curricula.userID', $user->userID)
+                ->select('curriculum.curriculumType')
+                ->first();
+            $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
         }
-    }
 
-    /**
-     * Reset the user's userCode using the emailed token.
-     * Mirrors the reset-password flow but updates userCode instead.
-     */
-    public function resetUserCode(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'token' => 'required|string',
-                'email' => 'required|email|exists:users,email',
-                'userCode' => 'required|string|max:20',
-                'userCode_confirmation' => 'required|same:userCode',
-            ]);
-
-            $user = User::where('email', $validated['email'])->firstOrFail();
-
-            $tokenError = $this->validateUserCodeResetToken($validated['email'], $validated['token']);
-            if ($tokenError) {
-                return response()->json(['message' => $tokenError], 422);
-            }
-
-            if (User::where('userCode', $validated['userCode'])->where('userID', '!=', $user->userID)->exists()) {
-                return response()->json([
-                    'message' => 'This user code is already in use by another account.',
-                ], 422);
-            }
-
-            if ($user->userCode === $validated['userCode']) {
-                return response()->json([
-                    'message' => 'The new user code must be different from your current user code.',
-                ], 422);
-            }
-
-            DB::transaction(function () use ($user, $validated) {
-                $oldUserCode = $user->userCode;
-                $newUserCode = $validated['userCode'];
-
-                $user->userCode = $newUserCode;
-                $user->save();
-
-                $this->syncUserCodeAcrossTables($oldUserCode, $newUserCode);
-
-                DB::table('user_code_reset_tokens')->where('email', $validated['email'])->delete();
-            });
-
-            Log::info('User code reset successfully for email: ' . $validated['email']);
-
-            return response()->json([
-                'message' => 'User code has been reset successfully.',
-                'userCode' => $validated['userCode'],
-            ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Throwable $e) {
-            Log::error('User code reset error', [
-                'email' => $request->input('email'),
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'message' => 'An error occurred while resetting your user code.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
-            ], 500);
-        }
+        return response()->json([
+            'userCode' => $user->userCode,
+            'email' => $user->email,
+            'firstName' => $user->firstName,
+            'lastName' => $user->lastName,
+            'roleID' => $user->roleID,
+            'fullName' => $user->firstName . ' ' . $user->lastName,
+            'remarks' => $remarks,
+            'curriculum' => $curriculum,
+            'programID' => $user->programID,
+            'programName' => $user->program?->programName ?? null,
+        ], 200);
     }
 
     /**
@@ -268,7 +190,7 @@ class UserController extends Controller
     {
         $this->authorizeDeanAccess();
         $validated = $this->validateUserIDs($request);
-        
+
         $activatedUsers = $this->processMultipleUsers($validated['userIDs'], true);
 
         return response()->json([
@@ -284,7 +206,7 @@ class UserController extends Controller
     {
         $this->authorizeDeanAccess();
         $validated = $this->validateUserIDs($request);
-        
+
         $deactivatedUsers = $this->processMultipleUsers($validated['userIDs'], false);
 
         return response()->json([
@@ -296,9 +218,9 @@ class UserController extends Controller
     /**
      * Approve single user with role-based hierarchy:
      * - Dean (4) can approve all roles
-     * - Associate Dean (5) can approve Program Chair (3), Instructor (2), and Student (1)
-     * - Program Chair (3) can approve Instructor (2) and Student (1)
-     * - Faculty (2) can approve Student (1)
+     * - Associate Dean (5) can approve Program Chair (3), Instructor (2), and Student (1) within their campus
+     * - Program Chair (3) can approve Instructor (2) and Student (1) ONLY within their assigned program
+     * - Faculty (2) can approve Student (1) ONLY for their own students
      */
     public function approveUser(Request $request, $userID)
     {
@@ -323,8 +245,46 @@ class UserController extends Controller
                 ], 403);
             }
 
+            // Validate scope-based restrictions
+            if (!$this->canApproveUserInScope($authUser, $user)) {
+                return response()->json([
+                    'message' => 'You cannot approve users outside your assigned scope. ' .
+                        $this->getScopeRestrictionMessage($authUser)
+                ], 403);
+            }
+
             $this->updateUserStatus($user, 'registered', true);
-            return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
+
+            $approverInfo = $this->getApproverInfo($authUser);
+            $emailSent = $this->emailService->sendStatusNotification($user, 'approved', $approverInfo['display_name']);
+            if (!$emailSent) {
+                Log::warning('Approval email failed to send', [
+                    'user_id' => $user->userID,
+                    'email' => $user->email,
+                    'approver_id' => $authUser->userID,
+                    'approver_role' => $approverInfo['role'],
+                ]);
+
+                return response()->json([
+                    'message' => 'User approved, but approval email failed to send.',
+                    'user' => $user,
+                    'email' => $user->email,
+                    'approval_info' => $approverInfo,
+                ], 200);
+            }
+
+            Log::info('User approved successfully', [
+                'user_id' => $user->userID,
+                'approver_id' => $authUser->userID,
+                'approver_role' => $approverInfo['role'],
+                'approver_scope' => $approverInfo['scope'],
+            ]);
+
+            return response()->json([
+                'message' => 'User approved successfully.',
+                'user' => $user,
+                'approval_info' => $approverInfo
+            ], 200);
 
         } catch (\Exception $e) {
             Log::error('User approval error: ' . $e->getMessage());
@@ -356,7 +316,7 @@ class UserController extends Controller
      */
     private function getAllowedApprovalRoles($roleID)
     {
-        return match($roleID) {
+        return match ($roleID) {
             4 => [1, 2, 3, 4, 5], // Dean can approve all
             5 => [1, 2, 3],      // Associate Dean can approve Program Chair, Instructor, and Student
             3 => [1, 2],         // Program Chair can approve Instructor and Student
@@ -366,33 +326,103 @@ class UserController extends Controller
     }
 
     /**
-     * Disapprove user (Only Dean).
+     * Disapprove user (Only Dean and Associate Dean).
+     * Scope restriction: Associate Deans can only disapprove within their campus,
+     * but Program Chairs and Faculty cannot disapprove (only Dean/Associate Dean can).
      */
     public function disapproveUser(Request $request, $userID)
     {
-        $this->authorizeDeanAccess();
+        $authUser = Auth::user();
+
+        // Only Dean (4) and Associate Dean (5) can disapprove
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only Dean or Associate Dean can disapprove users.'], 403);
+        }
+
         $user = User::findOrFail($userID);
 
+        // Associate Dean scope check: can only disapprove users in their campus
+        if ($authUser->roleID === 5 && $user->campusID !== $authUser->campusID) {
+            return response()->json([
+                'message' => 'You can only disapprove users within your assigned campus.'
+            ], 403);
+        }
+
         $this->updateUserStatus($user, 'disapproved', false);
-        return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
+
+        $approverInfo = $this->getApproverInfo($authUser);
+        $emailSent = $this->emailService->sendStatusNotification($user, 'disapproved', $approverInfo['display_name']);
+        if (!$emailSent) {
+            Log::warning('Disapproval email failed to send', [
+                'user_id' => $user->userID,
+                'email' => $user->email,
+                'approver_id' => $authUser->userID,
+                'approver_role' => $approverInfo['role'],
+            ]);
+
+            return response()->json([
+                'message' => 'User disapproved, but disapproval email failed to send.',
+                'user' => $user,
+                'email' => $user->email,
+                'approval_info' => $approverInfo,
+            ], 200);
+        }
+
+        Log::info('User disapproved', [
+            'user_id' => $user->userID,
+            'approver_id' => $authUser->userID,
+            'approver_role' => $approverInfo['role'],
+        ]);
+
+        return response()->json([
+            'message' => 'User has been disapproved.',
+            'user' => $user,
+            'approval_info' => $approverInfo
+        ], 200);
     }
 
     /**
-     * Approve multiple users at once (Only Dean).
+     * Approve multiple users at once with role-based scope validation.
+     * Dean can approve all, Associate Dean within their campus,
+     * Program Chair within their program, Faculty for their students.
      */
     public function approveMultipleUsers(Request $request)
     {
-        $this->authorizeDeanAccess();
-        $validated = $this->validateUserIDs($request);
+        try {
+            $authUser = Auth::user();
 
-        $statusIds = $this->getStatusIds();
-        $results = $this->processMultipleApprovals($validated['userIDs'], $statusIds);
+            // Only Dean, Associate Dean, Program Chair, and Faculty can bulk approve
+            if (!in_array($authUser->roleID, [2, 3, 4, 5])) {
+                return response()->json([
+                    'message' => 'Unauthorized: You do not have permission to approve users.'
+                ], 403);
+            }
 
-        return response()->json([
-            'message' => 'Bulk approval completed.',
-            'approved_users' => $results['approved'],
-            'skipped_users' => $results['skipped']
-        ], 200);
+            $validated = $this->validateUserIDs($request);
+            $statusIds = $this->getStatusIds();
+            $approverInfo = $this->getApproverInfo($authUser);
+
+            $results = $this->processMultipleApprovalsWithScope(
+                $validated['userIDs'],
+                $statusIds,
+                $authUser,
+                $approverInfo
+            );
+
+            return response()->json([
+                'message' => 'Bulk approval completed.',
+                'approved_users' => $results['approved'],
+                'skipped_users' => $results['skipped'],
+                'scope_restricted_users' => $results['scope_restricted'],
+                'approval_info' => $approverInfo
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Bulk approval error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An error occurred during bulk approval.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -688,6 +718,70 @@ class UserController extends Controller
             'deleted_users' => $deleted
         ], 200);
     }
+    /**
+     * Get count of pending users (Only Admins can access this).
+     */
+    public function getPendingUsersCount(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            // Check if user is authenticated
+            if (!$user) {
+                return response()->json(['message' => 'Unauthenticated'], 401);
+            }
+
+            // Check if user has appropriate role (Faculty, Program Chair, Dean, Associate Dean)
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
+                return response()->json(['message' => 'Unauthorized: Insufficient permissions'], 403);
+            }
+
+            // Get pending status ID
+            $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()?->id;
+
+            if (!$pendingStatusId) {
+                return response()->json(['count' => 0], 200);
+            }
+
+            // Build query based on role
+            $query = User::where('status_id', $pendingStatusId);
+
+            // Faculty can see pending users from their own campus/program
+            if ($user->roleID === 2) {
+                if ($user->campusID && $user->programID) {
+                    $query->whereHas('student', function ($q) use ($user) {
+                        $q->where('programID', $user->programID);
+                    })->orWhere(function ($q) use ($user) {
+                        $q->where('roleID', 1)
+                            ->where('programID', $user->programID);
+                    });
+                } else {
+                    return response()->json(['count' => 0], 200);
+                }
+            }
+            // Program Chair can see pending users from their program
+            else if ($user->roleID === 3) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('programID', $user->programID)
+                        ->orWhereHas('student', function ($subQ) use ($user) {
+                            $subQ->where('programID', $user->programID);
+                        });
+                });
+            }
+            // Associate Dean and Dean can see all pending users from their campus
+            else if ($user->roleID === 5) {
+                $query->where('campusID', $user->campusID);
+            }
+            // Dean can see all pending users
+
+            $count = $query->count();
+
+            return response()->json(['count' => $count], 200);
+        } catch (\Exception $e) {
+            Log::error("Error fetching pending users count: " . $e->getMessage());
+            return response()->json(['count' => 0], 200);
+        }
+    }
 
     // Private helper methods
 
@@ -717,7 +811,7 @@ class UserController extends Controller
             // Program Chair can only view users from their campus and program
             if ($user->campusID && $user->programID) {
                 $query->where('campusID', $user->campusID)
-                      ->where('programID', $user->programID);
+                    ->where('programID', $user->programID);
             } else {
                 Log::warning("Program Chair {$user->userID} has missing campus or program assignment");
                 $query->where('campusID', 0); // This will return no results
@@ -726,8 +820,8 @@ class UserController extends Controller
             // Faculty can only view students from their campus and program
             if ($user->campusID && $user->programID) {
                 $query->where('campusID', $user->campusID)
-                      ->where('programID', $user->programID)
-                      ->where('roleID', 1); // Only show students (roleID 1)
+                    ->where('programID', $user->programID)
+                    ->where('roleID', 1); // Only show students (roleID 1)
             } else {
                 Log::warning("Faculty {$user->userID} has missing campus or program assignment");
                 $query->where('campusID', 0); // This will return no results
@@ -742,42 +836,49 @@ class UserController extends Controller
     private function applySearchFilters($query, Request $request)
     {
         $filters = [
-            'search' => function($q, $value) {
-                $q->where(function($q) use ($value) {
+            'search' => function ($q, $value) {
+                $q->where(function ($q) use ($value) {
                     $q->where('firstName', 'like', "%{$value}%")
-                      ->orWhere('lastName', 'like', "%{$value}%")
-                      ->orWhere('email', 'like', "%{$value}%")
-                      ->orWhere('userCode', 'like', "%{$value}%");
+                        ->orWhere('lastName', 'like', "%{$value}%")
+                        ->orWhere('email', 'like', "%{$value}%")
+                        ->orWhere('userCode', 'like', "%{$value}%");
                 });
             },
-            'status' => function($q, $value) {
+            'status' => function ($q, $value) {
                 if ($value && $value !== 'all') {
-                    $q->whereHas('status', function($q) use ($value) {
+                    $q->whereHas('status', function ($q) use ($value) {
                         $q->where('name', $value);
                     });
                 }
             },
-            'campus' => function($q, $value) {
-                $q->whereHas('campus', function($q) use ($value) {
+            'campus' => function ($q, $value) {
+                $q->whereHas('campus', function ($q) use ($value) {
                     $q->where('campusName', $value);
                 });
             },
-            'role' => function($q, $value) {
-                $q->whereHas('role', function($q) use ($value) {
-                    $q->where('roleName', $value);
+            'role' => function ($q, $value) {
+                $roles = explode(',', $value);
+                $q->whereHas('role', function ($q) use ($roles) {
+                    $q->whereIn('roleName', $roles);
                 });
             },
-            'position' => function($q, $value) {
-                $q->whereHas('role', function($q) use ($value) {
-                    $q->where('roleName', $value);
+            'position' => function ($q, $value) {
+                $roles = explode(',', $value);
+                $q->whereHas('role', function ($q) use ($roles) {
+                    $q->whereIn('roleName', $roles);
                 });
             },
-            'program' => function($q, $value) {
-                $q->whereHas('program', function($q) use ($value) {
+            'program' => function ($q, $value) {
+                $q->whereHas('program', function ($q) use ($value) {
                     $q->where('programName', $value);
                 });
             },
-            'state' => function($q, $value) {
+            'yearLevel' => function ($q, $value) {
+                $q->whereHas('student', function ($q) use ($value) {
+                    $q->where('yearLevel', $value);
+                });
+            },
+            'state' => function ($q, $value) {
                 $q->where('isActive', $value === 'Active');
             }
         ];
@@ -791,37 +892,57 @@ class UserController extends Controller
 
     private function paginateResults($query, Request $request)
     {
-        $perPage = $request->input('limit', 50);
-        $page = $request->input('page', 1);
+        $perPage = min((int) $request->input('limit', 20), 100); // Default 20, max 100
+        $page = max((int) $request->input('page', 1), 1);
         $total = $query->count();
 
-        $users = $query->orderBy('userID', 'desc')
-                      ->skip(($page - 1) * $perPage)
-                      ->take($perPage)
-                      ->get()
-                      ->map(function ($user) {
-                          return [
-                              'userID' => $user->userID,
-                              'userCode' => $user->userCode,
-                              'firstName' => $user->firstName,
-                              'lastName' => $user->lastName,
-                              'email' => $user->email,
-                              'roleID' => $user->roleID,
-                              'campusID' => $user->campusID,
-                              'programID' => $user->programID,
-                              'role' => $user->role ? $user->role->roleName : 'Unknown',
-                              'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
-                              'program' => $user->program ? $user->program->programName : 'Not Assigned',
-                              'isActive' => $user->isActive,
-                              'status_id' => $user->status_id,
-                              'status' => $user->status ? $user->status->name : 'Unknown',
-                          ];
-                      });
+        $users = $query->with('student')->orderBy('userID', 'desc')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get()
+            ->map(function ($user) {
+                // Fetch remarks and curriculum for students
+                $remarks = null;
+                $curriculum = null;
+                if ($user->roleID == 1) {
+                    $remarksRow = \DB::table('student_remarks')
+                        ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
+                        ->where('student_remarks.userID', $user->userID)
+                        ->select('remarks.remarksType')
+                        ->first();
+                    $remarks = $remarksRow ? $remarksRow->remarksType : null;
+                    $curriculumRow = \DB::table('student_curricula')
+                        ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
+                        ->where('student_curricula.userID', $user->userID)
+                        ->select('curriculum.curriculumType')
+                        ->first();
+                    $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
+                }
+                return [
+                    'userID' => $user->userID,
+                    'userCode' => $user->userCode,
+                    'firstName' => $user->firstName,
+                    'lastName' => $user->lastName,
+                    'email' => $user->email,
+                    'roleID' => $user->roleID,
+                    'campusID' => $user->campusID,
+                    'programID' => $user->programID,
+                    'role' => $user->role ? $user->role->roleName : 'Unknown',
+                    'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
+                    'program' => $user->program ? $user->program->programName : 'Not Assigned',
+                    'isActive' => $user->isActive,
+                    'status_id' => $user->status_id,
+                    'status' => $user->status ? $user->status->name : 'Unknown',
+                    'remarks' => $remarks,
+                    'curriculum' => $curriculum,
+                    'yearLevel' => $user->student?->yearLevel ?? null,
+                ];
+            });
 
         return [
             'users' => $users,
             'total' => $total,
-            'page' => (int)$page,
+            'page' => (int) $page,
             'totalPages' => ceil($total / $perPage)
         ];
     }
@@ -902,7 +1023,7 @@ class UserController extends Controller
         ];
     }
 
-    private function processMultipleApprovals($userIDs, $statusIds)
+    private function processMultipleApprovals($userIDs, $statusIds, $approverName = 'The Dean')
     {
         $approved = [];
         $skipped = [];
@@ -919,10 +1040,82 @@ class UserController extends Controller
                 'isActive' => true
             ]);
 
+            // Send email notification
+            $this->emailService->sendStatusNotification($user, 'approved', $approverName);
+
             $approved[] = $user;
         }
 
         return ['approved' => $approved, 'skipped' => $skipped];
+    }
+
+    /**
+     * Process multiple user approvals with scope validation
+     * Filters users based on approver's authority and scope
+     */
+    private function processMultipleApprovalsWithScope($userIDs, $statusIds, $authUser, $approverInfo)
+    {
+        $approved = [];
+        $skipped = [];
+        $scopeRestricted = [];
+
+        foreach ($userIDs as $userID) {
+            $user = User::find($userID);
+
+            // Check if user exists and is pending
+            if (!$user || $user->status_id !== $statusIds['pending']) {
+                $skipped[] = [
+                    'userID' => $userID,
+                    'reason' => 'User not found or not pending'
+                ];
+                continue;
+            }
+
+            // Check role hierarchy
+            if (!$this->canApproveUser($authUser, $user)) {
+                $skipped[] = [
+                    'userID' => $userID,
+                    'reason' => 'Insufficient role authority'
+                ];
+                continue;
+            }
+
+            // Check scope restrictions
+            if (!$this->canApproveUserInScope($authUser, $user)) {
+                $scopeRestricted[] = [
+                    'userID' => $userID,
+                    'reason' => $this->getScopeRestrictionMessage($authUser)
+                ];
+                continue;
+            }
+
+            // Approve the user
+            $user->update([
+                'status_id' => $statusIds['registered'],
+                'isActive' => true
+            ]);
+
+            // Send email notification with approver info
+            $this->emailService->sendStatusNotification(
+                $user,
+                'approved',
+                $approverInfo['display_name']
+            );
+
+            $approved[] = $user;
+
+            Log::info('User approved in bulk', [
+                'user_id' => $user->userID,
+                'approver_id' => $authUser->userID,
+                'approver_role' => $approverInfo['role'],
+            ]);
+        }
+
+        return [
+            'approved' => $approved,
+            'skipped' => $skipped,
+            'scope_restricted' => $scopeRestricted
+        ];
     }
 
     private function validateProfileUpdate(Request $request, $user)
@@ -990,253 +1183,157 @@ class UserController extends Controller
 
     private function getManageableTargetRoles(int $authRoleID): array
     {
-        return match ($authRoleID) {
-            4 => [1, 2, 3, 5],
-            5 => [1, 2, 3],
-            default => [],
+        return match ($roleID) {
+            4 => [1, 2, 3, 4, 5], // Dean can change all roles
+            5 => [1, 2, 3],      // Associate Dean can change Program Chair, Instructor, and Student
+            3 => [1, 2],         // Program Chair can change Instructor and Student
+            default => []
         };
     }
 
-    private function getEditableCredentialFields(int $authRoleID): array
+    private function getApproverDisplayName($user)
     {
-        return match ($authRoleID) {
-            4 => ['firstName', 'lastName', 'userCode', 'email', 'roleID', 'programID', 'campusID'],
-            5 => ['firstName', 'lastName', 'userCode', 'email', 'programID'],
-            default => [],
-        };
-    }
+        $approverName = $user->firstName . ' ' . $user->lastName;
 
-    private function getAssignableCredentialRoles(int $authRoleID): array
-    {
-        return match ($authRoleID) {
-            4 => [1, 2, 3, 5],
-            default => [],
-        };
-    }
-
-    private function rejectUnauthorizedProfileFields(Request $request, User $user): ?\Illuminate\Http\JsonResponse
-    {
-        $alwaysRestricted = ['password', 'status_id', 'status', 'isActive'];
-
-        foreach ($alwaysRestricted as $field) {
-            if ($request->has($field)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "The {$field} field cannot be updated through this endpoint.",
-                ], 422);
-            }
-        }
-
-        // Fields all users can edit on their own profile
-        $allowedFields = ['firstName', 'lastName', 'email', 'userCode'];
-
-        // Dean can also edit campus, program, role, and specify a replacement
-        if ($user->roleID === 4) {
-            $allowedFields = array_merge($allowedFields, ['campusID', 'programID', 'roleID', 'replacementUserID']);
-        }
-
-        foreach (array_keys($request->all()) as $field) {
-            if (!in_array($field, $allowedFields, true)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "You are not allowed to update the {$field} field.",
-                ], 422);
-            }
-        }
-
-        return null;
-    }
-
-    private function getAlwaysRestrictedCredentialFields(): array
-    {
-        return ['password', 'status_id', 'status', 'isActive'];
-    }
-
-    private function rejectUnauthorizedCredentialFields(Request $request, User $authUser): ?\Illuminate\Http\JsonResponse
-    {
-        foreach ($this->getAlwaysRestrictedCredentialFields() as $field) {
-            if ($request->has($field)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "The {$field} field cannot be updated through this endpoint.",
-                ], 422);
-            }
-        }
-
-        $allowedFields = $this->getEditableCredentialFields($authUser->roleID);
-
-        foreach (array_keys($request->all()) as $field) {
-            if (!in_array($field, $allowedFields, true)) {
-                if ($authUser->roleID === 5 && in_array($field, ['roleID', 'campusID'], true)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Associate Deans cannot change a user\'s role or campus.',
-                    ], 422);
-                }
-
-                return response()->json([
-                    'success' => false,
-                    'message' => "You are not allowed to update the {$field} field.",
-                ], 422);
-            }
-        }
-
-        return null;
-    }
-
-    private function resolveCredentialUpdateAuthorizationError(User $authUser, User $targetUser, Request $request): ?string
-    {
-        $manageableRoles = $this->getManageableTargetRoles($authUser->roleID);
-
-        if (!in_array($targetUser->roleID, $manageableRoles, true)) {
-            return $authUser->roleID === 4
-                ? 'You can only update credentials for users from Student through Associate Dean.'
-                : 'You can only update credentials for users from Student through Program Chair in your campus.';
-        }
-
-        if ($authUser->roleID === 5 && $targetUser->campusID !== $authUser->campusID) {
-            return 'You can only update credentials for users assigned to your campus.';
-        }
-
-        if ($authUser->roleID === 5 && ($request->has('roleID') || $request->has('campusID'))) {
-            return 'Associate Deans cannot change a user\'s role or campus.';
-        }
-
-        return null;
-    }
-
-    private function validateSubordinateCredentialUpdate(Request $request, User $targetUser, User $authUser): array
-    {
-        $rules = [
-            'firstName' => 'sometimes|required|string|max:100',
-            'lastName' => 'sometimes|required|string|max:100',
-            'email' => [
-                'sometimes',
-                'required',
-                'email',
-                'max:100',
-                Rule::unique('users', 'email')->ignore($targetUser->userID, 'userID'),
-            ],
-            'userCode' => [
-                'sometimes',
-                'required',
-                'string',
-                'max:20',
-                Rule::unique('users', 'userCode')->ignore($targetUser->userID, 'userID'),
-            ],
-            'programID' => 'sometimes|required|integer|exists:programs,programID',
+        // Add role and program information
+        $roleNames = [
+            1 => 'Student',
+            2 => 'Instructor',
+            3 => 'Program Chair',
+            4 => 'Dean',
+            5 => 'Associate Dean'
         ];
 
+        $roleName = $roleNames[$user->roleID] ?? 'Administrator';
+
+        // For Program Chair and Instructor, include program name
+        if (in_array($user->roleID, [2, 3]) && $user->program) {
+            $programName = $user->program->programName ?? '';
+            return "{$approverName} - {$programName} {$roleName}";
+        }
+
+        // For Dean and Associate Dean, just show role
+        if (in_array($user->roleID, [4, 5])) {
+            return $roleName;
+        }
+
+        return $approverName;
+    }
+
+    /**
+     * Get comprehensive approver information including role, scope, and display name
+     * Provides transparency about who approved and their authority level
+     */
+    private function getApproverInfo($user)
+    {
+        $roleNames = [
+            1 => 'Student',
+            2 => 'Faculty/Instructor',
+            3 => 'Program Chair',
+            4 => 'Dean',
+            5 => 'Associate Dean'
+        ];
+
+        $roleName = $roleNames[$user->roleID] ?? 'Administrator';
+
+        $displayName = $user->firstName . ' ' . $user->lastName;
+        $campusName = $user->campus ? $user->campus->campusName : 'N/A';
+        $programName = $user->program ? $user->program->programName : 'N/A';
+
+        $info = [
+            'approver_id' => $user->userID,
+            'approver_name' => $displayName,
+            'role' => $roleName,
+            'campus' => $campusName,
+            'program' => $programName,
+            'display_name' => $displayName . ' (' . $roleName . ')',
+            'scope' => $this->getApproverScope($user)
+        ];
+
+        // Build detailed display name with scope information
+        if ($user->roleID === 4) {
+            $info['display_name'] = $displayName . ' - Dean (Full Authority)';
+        } elseif ($user->roleID === 5) {
+            $info['display_name'] = $displayName . ' - Associate Dean (' . $campusName . ' Campus)';
+        } elseif ($user->roleID === 3) {
+            $info['display_name'] = $displayName . ' - Program Chair (' . $programName . ')';
+        } elseif ($user->roleID === 2) {
+            $info['display_name'] = $displayName . ' - Faculty (' . $programName . ')';
+        }
+
+        return $info;
+    }
+
+    /**
+     * Get the scope of authority for an approver
+     */
+    private function getApproverScope($user)
+    {
+        switch ($user->roleID) {
+            case 4:
+                return 'Institution-wide Authority';
+            case 5:
+                return 'Campus: ' . ($user->campus ? $user->campus->campusName : 'Unassigned');
+            case 3:
+                return 'Program: ' . ($user->program ? $user->program->programName : 'Unassigned');
+            case 2:
+                return 'Students in: ' . ($user->program ? $user->program->programName : 'Unassigned');
+            default:
+                return 'Limited Authority';
+        }
+    }
+
+    /**
+     * Check if approver can approve user within their assigned scope
+     * - Program Chairs can ONLY approve within their assigned program
+     * - Faculty can ONLY approve their own students
+     * - Deans have no scope restrictions
+     */
+    private function canApproveUserInScope($authUser, $targetUser)
+    {
+        // Dean has full authority, no scope restrictions
         if ($authUser->roleID === 4) {
-            $rules['roleID'] = 'sometimes|required|integer|exists:roles,roleID|in:1,2,3,5';
-            $rules['campusID'] = 'sometimes|required|integer|exists:campuses,campusID';
+            return true;
         }
 
-        $validated = $request->validate($rules);
+        // Associate Dean can approve users in their campus
+        if ($authUser->roleID === 5) {
+            return $targetUser->campusID === $authUser->campusID;
+        }
 
-        return array_intersect_key($validated, array_flip($this->getEditableCredentialFields($authUser->roleID)));
+        // Program Chair can ONLY approve users within their assigned program
+        if ($authUser->roleID === 3) {
+            return $targetUser->programID === $authUser->programID &&
+                $targetUser->campusID === $authUser->campusID;
+        }
+
+        // Faculty can ONLY approve students (roleID 1) in their program
+        if ($authUser->roleID === 2) {
+            return $targetUser->roleID === 1 && // Only students
+                $targetUser->programID === $authUser->programID &&
+                $targetUser->campusID === $authUser->campusID;
+        }
+
+        return false;
     }
 
-    private function resolveRoleSlotAvailabilityErrorForUser(
-        User $targetUser,
-        ?int $newRoleID,
-        ?int $newCampusID,
-        ?int $newProgramID
-    ): ?string {
-        $roleID = $newRoleID ?? $targetUser->roleID;
-        $campusID = $newCampusID ?? $targetUser->campusID;
-        $programID = $newProgramID ?? $targetUser->programID;
-
-        if ($roleID === 5) {
-            $associateDeanExists = User::where('roleID', 5)
-                ->where('campusID', $campusID)
-                ->where('userID', '!=', $targetUser->userID)
-                ->exists();
-
-            if ($associateDeanExists) {
-                return 'Only one Associate Dean is allowed per campus.';
-            }
-        }
-
-        if ($roleID === 3) {
-            $programChairExists = User::where('roleID', 3)
-                ->where('campusID', $campusID)
-                ->where('programID', $programID)
-                ->where('userID', '!=', $targetUser->userID)
-                ->exists();
-
-            if ($programChairExists) {
-                return 'Only one Program Chair is allowed per program and campus.';
-            }
-        }
-
-        return null;
-    }
-
-    private function createUserCodeResetToken(User $user): string
+    /**
+     * Get user-friendly scope restriction message for error responses
+     */
+    private function getScopeRestrictionMessage($authUser)
     {
-        $token = Str::random(64);
-
-        DB::table('user_code_reset_tokens')->updateOrInsert(
-            ['email' => $user->email],
-            [
-                'token' => Hash::make($token),
-                'created_at' => now(),
-            ]
-        );
-
-        return $token;
-    }
-
-    private function validateUserCodeResetToken(string $email, string $token): ?string
-    {
-        $record = DB::table('user_code_reset_tokens')->where('email', $email)->first();
-
-        if (!$record) {
-            return 'User code reset failed. No reset request was found for this email.';
-        }
-
-        if (!Hash::check($token, $record->token)) {
-            return 'User code reset failed. The token is invalid.';
-        }
-
-        $expireMinutes = (int) config('auth.passwords.users.expire', 60);
-        if (Carbon::parse($record->created_at)->addMinutes($expireMinutes)->isPast()) {
-            DB::table('user_code_reset_tokens')->where('email', $email)->delete();
-
-            return 'User code reset failed. The token has expired. Please request a new reset link.';
-        }
-
-        return null;
-    }
-
-    private function isUserCodeResetThrottled(string $email): bool
-    {
-        $record = DB::table('user_code_reset_tokens')->where('email', $email)->first();
-
-        if (!$record || !$record->created_at) {
-            return false;
-        }
-
-        $throttleSeconds = (int) config('auth.passwords.users.throttle', 60);
-
-        return Carbon::parse($record->created_at)->addSeconds($throttleSeconds)->isFuture();
-    }
-
-    private function syncUserCodeAcrossTables(string $oldUserCode, string $newUserCode): void
-    {
-        if (Schema::hasTable('students')) {
-            $newCodeExistsInStudents = DB::table('students')->where('userCode', $newUserCode)->exists();
-            if (!$newCodeExistsInStudents && DB::table('students')->where('userCode', $oldUserCode)->exists()) {
-                DB::table('students')->where('userCode', $oldUserCode)->update(['userCode' => $newUserCode]);
-            }
-        }
-
-        if (Schema::hasTable('student_grades')) {
-            $newCodeExistsInGrades = DB::table('student_grades')->where('userCode', $newUserCode)->exists();
-            if (!$newCodeExistsInGrades && DB::table('student_grades')->where('userCode', $oldUserCode)->exists()) {
-                DB::table('student_grades')->where('userCode', $oldUserCode)->update(['userCode' => $newUserCode]);
-            }
+        switch ($authUser->roleID) {
+            case 3: // Program Chair
+                $programName = $authUser->program ? $authUser->program->programName : 'your assigned program';
+                return "As a Program Chair, you can only approve users within {$programName}.";
+            case 2: // Faculty
+                $programName = $authUser->program ? $authUser->program->programName : 'your assigned program';
+                return "As Faculty, you can only approve students within {$programName}.";
+            case 5: // Associate Dean
+                $campusName = $authUser->campus ? $authUser->campus->campusName : 'your assigned campus';
+                return "As an Associate Dean, you can only approve users within {$campusName}.";
+            default:
+                return "You do not have authority to approve this user.";
         }
     }
 }

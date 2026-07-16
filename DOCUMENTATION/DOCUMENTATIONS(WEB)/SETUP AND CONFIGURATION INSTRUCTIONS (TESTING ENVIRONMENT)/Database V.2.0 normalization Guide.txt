@@ -1,0 +1,147 @@
+NOTE: THIS IS THE INSTRUCTIONS FROM V.1.6 - 2.0 TRANSITION
+
+1. Navigate to /home/ubuntu/CAPS/Testing_final
+
+    cd /home/ubuntu/CAPS/Testing_final
+
+2. Navigate to the backend container and randomize first the answer
+
+    docker exec -it caps_backend bash
+
+    (NOTE: SKIP THIS PART IN PRODUCTION!!): php artisan choices:randomize-correct 
+
+
+3. Type this command:
+
+    php artisan migrate
+   
+    NOTE: THIS IS THE CHANGES ADDED IN V1.6
+
+Another field will be added in the subjects table named:
+- is_enabled_for_exam_questions
+
+NOTE: THIS THE CHANGES FOR 2.0 DATABASE CHANGES SO PLEASE DOUBLE CHECK!!
+It will migrate the table named:
+
+
+classes:            //This is the name of the table  
+    -classID        // This is the name of the fields, follow this format to read the table names and their fields 
+    -facultyID
+    -subjectID
+    -className
+    -classCode
+    -inviteToken
+    -inviteLink
+    -description
+    -schedule
+    -isActive
+
+class_enrollments: 
+    -enrollmentID
+    -classID
+    -studentID
+    -enrolledAt
+    -unique_class_student
+
+class_personal_quizzes: 
+    -classPersonalQuizID
+    -classID
+    -personalQuizID
+    -startDate
+    -deadlineDate
+
+class_quiz_attempts: 
+    -attemptID
+    -classID
+    -personalQuizID
+    -studentID
+    -score
+    -totalScore
+    -accuracy
+    -isCompleted
+    -startedAt
+    -completedAt
+
+personal_quizzes:
+    -personalQuizID
+    -title
+    -description
+    -instruction
+    -quiz_type_id
+    -subjectID
+    -coverage_id
+    -created_by
+    -isArchived
+
+personal_quiz_questions:
+    -personalQuizQuestionID
+    -personalQuizID
+    -questionID
+    -personalQuizSubjectID
+    -personalQuizUserID
+    -personalQuizQuestionText
+    -personalQuizImage
+    -personalQuizScore
+    -personalQuizCoverageId
+    -personalQuizID
+    -questionID
+
+
+class_personal_quiz_settings:
+    -personalQuizSettingID
+    -classPersonalQuizID
+    -startTime
+    -endTime
+    -quizAttempts
+    -quizTimer
+    -quizTimerEnabled
+    -shuffleQuestions
+    -shuffleChoices
+    -showCorrectAnswers
+    -showCorrectQuestion
+    -autoSubmitOnTimeout
+    -allowLateSubmission
+    -showScoreAfterQuiz
+    -enableTimer
+    -duration_minutes
+
+personal_quiz_choices:
+    -personalQuizChoiceID
+    -personalQuizQuestionID
+    -choiceText
+    -isCorrect
+    -image
+    -position
+
+student_quiz_attempts:
+    -attemptID
+    -personalQuizID
+    -studentID
+    -attemptNumber
+    -startedAt
+    -completedAt
+
+student_quiz_results: 
+    -class_quiz_assignment_id
+    -studentID
+    -score
+    -total_score
+    -percentage
+    -attempt_number
+    -started_at
+    -submitted_at
+    -time_taken_seconds
+    -isRecorded
+    -isPassed
+
+4. Seed the database for the new migrations: 
+    php artisan db:seed
+
+5. It should show errors only in the users table:
+
+ - Duplicate Data (Due to test accounts.) This error is acceptable
+ - We will Remove the test accounts after user acceptance test is over.
+
+
+
+

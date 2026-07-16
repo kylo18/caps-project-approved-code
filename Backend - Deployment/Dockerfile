@@ -3,12 +3,17 @@ FROM php:8.2-apache
 
 # Install required PHP extensions and dependencies
 RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    openssl \
     unzip \
     curl \
+    git \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
-    && docker-php-ext-install pdo pdo_mysql gd
+    libzip-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_mysql gd zip
 
 # Enable Apache rewrite module (Laravel requires this)
 RUN a2enmod rewrite
@@ -24,12 +29,14 @@ WORKDIR /var/www/html
 
 # Copy Laravel project files into the container
 COPY . .
-
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install Laravel PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Fix: Remove invalid lock file and reinstall dependencies for Laravel 12
+RUN rm -f composer.lock && composer install --no-dev --no-scripts --optimize-autoloader --ignore-platform-reqs
+
+# Install laravel/pail separately (it's in require-dev but registered in config/app.php for production use)
+RUN composer require --no-update laravel/pail:^1.2.2 && composer update laravel/pail --no-scripts --ignore-platform-reqs
 
 # Set correct permissions for storage and cache
 RUN chown -R www-data:www-data /var/www/html \
@@ -38,10 +45,8 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Copy custom entrypoint script
 COPY docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
-
-# Expose port 80
-EXPOSE 80
+CMD ["apache2-foreground"]

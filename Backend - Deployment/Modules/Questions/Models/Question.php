@@ -23,6 +23,7 @@ class Question extends Model
         'score',
         'difficulty_id',
         'coverage_id',
+        'topic',
         'status_id',
         'purpose_id',
         'editedBy',
@@ -83,13 +84,5 @@ class Question extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approvedBy');
-    }
-
-    /**
-     * Relationship: Question has many PersonalQuizQuestions
-     */
-    public function personalQuizQuestions()
-    {
-        return $this->hasMany(\Modules\PersonalExams\Models\PersonalQuizQuestion::class, 'questionID', 'questionID');
     }
 }

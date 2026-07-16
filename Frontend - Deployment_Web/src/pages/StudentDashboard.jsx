@@ -38,7 +38,7 @@ const getCardStyle = (subjectID) => {
   };
 };
 
-/* ── Expand program abbreviations to full names ─────────────── */
+/* ── Expand program abbreviations to full names ───────── */
 const PROGRAM_NAMES = {
   // General
   GE: "General Subject",
@@ -164,8 +164,8 @@ const SubjectCard = ({ subject, onExplore }) => {
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
-
+  const apiUrl = import.meta.env.VITE_API_BASE_URL; //Kini nagbasa sa imong `.env` file nga ingon ani:
+                                                    // VITE_API_BASE_URL=http://localhost:8000/api
   /* user info */
   const [userName, setUserName] = useState("Alex");
   const [selectedLevel, setSelectedLevel] = useState("University");
@@ -225,7 +225,7 @@ const StudentDashboard = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const res = await fetch(`${apiUrl}/student/practice-subjects`, {
+        const res = await fetch(`${apiUrl}/student/practice-subjects`, {  //fetch = messenger
           headers: {
             Authorization: `Bearer ${sessionStorage.getItem("token")}`,
           },
@@ -386,7 +386,7 @@ const StudentDashboard = () => {
           },
         }),
       );
-      navigate("/exam-preview", {
+      navigate("/exam-preview", { //show on the screen
         state: {
           subjectID: subject.subjectID,
           examData: {

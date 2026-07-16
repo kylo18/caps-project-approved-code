@@ -60,12 +60,12 @@ class ClassPersonalQuizController extends Controller
             }
 
             $classPersonalQuizzes = ClassPersonalQuiz::with([
-                    'personalQuiz.subject',
-                    'personalQuiz.quizType',
-                    'personalQuiz.coverage',
-                    'personalQuiz.creator',
-                    'setting',
-                ])
+                'personalQuiz.subject',
+                'personalQuiz.quizType',
+                'personalQuiz.coverage',
+                'personalQuiz.creator',
+                'setting',
+            ])
                 ->where('classID', $classID)
                 ->orderByDesc('created_at')
                 ->get();
@@ -92,7 +92,7 @@ class ClassPersonalQuizController extends Controller
                         ->count();
                     $remainingAttempts = max(0, (int) $setting->quizAttempts - (int) $attemptsUsed);
                 }
-                
+
                 // Faculty-only: student list from ClassQuizAttempt
                 $attempts = collect();
                 if ($user && $user->roleID != 1) {
@@ -434,8 +434,20 @@ class ClassPersonalQuizController extends Controller
                 ], 403);
             }
 
-            // Verify the student is enrolled in the class
-            $enrollment = ClassEnrollment::where('classID', $classID)
+            // Resolve class by numeric ID or 6-character Code
+            $class = (is_numeric($classID))
+                ? ClassModel::where('classID', $classID)->where('isActive', true)->first()
+                : ClassModel::where('classCode', $classID)->where('isActive', true)->first();
+
+            if (!$class) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Class not found or is not active.',
+                ], 404);
+            }
+
+            // Verify the student is enrolled in the class using the numeric ID
+            $enrollment = ClassEnrollment::where('classID', $class->classID)
                 ->where('studentID', $user->userID)
                 ->first();
 
@@ -446,27 +458,17 @@ class ClassPersonalQuizController extends Controller
                 ], 403);
             }
 
-            // Get the class details
-            $class = ClassModel::where('classID', $classID)
-                ->where('isActive', true)
-                ->with(['faculty'])
-                ->first();
-
-            if (!$class) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Class not found or is not active.',
-                ], 404);
-            }
+            // Load additional details for the class
+            $class->load(['subject', 'faculty']);
 
             // Get all quizzes assigned to this class
             $classPersonalQuizzes = ClassPersonalQuiz::with([
-                    'personalQuiz.subject',
-                    'personalQuiz.quizType',
-                    'personalQuiz.coverage',
-                    'personalQuiz.creator',
-                    'setting',
-                ])
+                'personalQuiz.subject',
+                'personalQuiz.quizType',
+                'personalQuiz.coverage',
+                'personalQuiz.creator',
+                'setting',
+            ])
                 ->where('classID', $classID)
                 ->orderByDesc('created_at')
                 ->get();
@@ -803,7 +805,7 @@ class ClassPersonalQuizController extends Controller
             // Format classes with assignment status
             $formattedClasses = $classes->map(function ($class) use ($assignedClassIds, $personalQuizID) {
                 $isAssigned = in_array($class->classID, $assignedClassIds);
-                
+
                 // Get assignment details if already assigned
                 $assignment = null;
                 if ($isAssigned) {
@@ -965,8 +967,8 @@ class ClassPersonalQuizController extends Controller
 
             $response = [
                 'success' => true,
-                'message' => count($assigned) > 0 
-                    ? 'Quiz assignment completed successfully.' 
+                'message' => count($assigned) > 0
+                    ? 'Quiz assignment completed successfully.'
                     : 'No classes were assigned.',
                 'assigned' => $assigned,
                 'assignedCount' => count($assigned),

@@ -13,7 +13,9 @@ class EventServiceProvider extends ServiceProvider
      * @var array
      */
     protected $listen = [
-        // Example: 'App\Events\EventName' => ['App\Listeners\EventListener'],
+        App\Events\ExamResultUpdated::class => [
+            App\Listeners\UpdateLeaderboardRedis::class,
+        ],
     ];
 
     /**

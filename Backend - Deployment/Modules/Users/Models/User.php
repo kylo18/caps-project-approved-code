@@ -14,15 +14,9 @@ use Modules\Users\Models\Role;
 use Modules\Questions\Models\Status;
 use Modules\FacultySubjects\Models\FacultySubject;
 use Modules\PracticeExams\Models\PracticeExamResult;
-use Modules\PersonalExams\Models\PersonalQuiz;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Auth\Notifications\ResetPassword;
 use App\Notifications\CustomResetPassword;
-use App\Notifications\CustomResetUserCode;
-use Modules\PersonalClasses\Models\ClassModel;
-use Modules\PersonalClasses\Models\ClassEnrollment;
-use Modules\Users\Models\Campus;
-use Modules\Users\Models\Program;
 
 class User extends Authenticatable
 {
@@ -47,6 +41,12 @@ class User extends Authenticatable
         'isActive',
         'status_id',
         'programID',
+        'google_id',
+
+        'facebook_id',
+
+        'email_verified_at',
+
     ];
 
     protected $hidden = [
@@ -82,6 +82,12 @@ class User extends Authenticatable
     public function facultySubjects(): HasMany
     {
         return $this->hasMany(FacultySubject::class, 'facultyID');
+    }
+
+    // 🔹 Relationship: User may have a student profile
+    public function student(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Student::class, 'userCode', 'userCode');
     }
 
     // 🔹 Check if the user is a Dean
@@ -121,51 +127,6 @@ class User extends Authenticatable
     public function practiceExamResults()
     {
         return $this->hasMany(PracticeExamResult::class, 'userID', 'userID');
-    }
-
-    public function personalQuizzes()
-    {
-        return $this->hasMany(PersonalQuiz::class, 'created_by', 'userID');
-    }
-
-    /**
-     * Relationship: User (faculty) has many Classes
-     */
-    public function classes()
-    {
-        return $this->hasMany(\Modules\PersonalClasses\Models\ClassModel::class, 'facultyID', 'userID');
-    }
-
-    /**
-     * Relationship: User (student) has many Class Enrollments
-     */
-    public function classEnrollments()
-    {
-        return $this->hasMany(ClassEnrollment::class, 'studentID', 'userID');
-    }
-
-    /**
-     * Relationship: User (student) belongs to many Classes through Enrollments
-     */
-    public function enrolledClasses()
-    {
-        return $this->belongsToMany(
-            ClassModel::class,
-            'class_enrollments',
-            'studentID',
-            'classID',
-            'userID',
-            'classID'
-        )->withPivot('enrolledAt')
-          ->withTimestamps();
-    }
-
-    /**
-     * Relationship: User (student) has many Quiz Attempts
-     */
-    public function classQuizAttempts()
-    {
-        return $this->hasMany(\Modules\PersonalClasses\Models\ClassQuizAttempt::class, 'studentID', 'userID');
     }
 
     public function sendPasswordResetNotification($token)

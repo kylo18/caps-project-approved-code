@@ -1,0 +1,184 @@
+CAPS Mobile Deployment 
+
+Purpose
+This document explains how the CAPS mobile app is built, deployed, downloaded, and connected to the live CAPS backend. It also lists the frameworks used, the current live ports, and the supported ways to view the MySQL database.
+
+Deployment Overview
+The CAPS mobile app is a native Android application. It is not served as a browser frontend on the server. Instead, it is built as an APK and distributed through the CAPS web landing page.
+
+The mobile app communicates with the live CAPS backend API only. It does not connect directly to MySQL.
+
+Frameworks and Tech Stack
+
+Backend
+- Laravel 12
+- PHP 8.2
+- Laravel Sanctum for API authentication
+- Laravel Socialite for social login
+- Inertia.js
+- nwidart/laravel-modules for module-based structure
+- Redis through Predis
+- MySQL 8 as the database engine
+- phpMyAdmin for database browsing (This is currently not accessible in the live server)
+- Docker and Docker Compose for deployment
+
+Web frontend
+- React 19
+- Vite 6
+- Tailwind CSS 4
+- React Router
+- Redux Toolkit
+- Axios
+- Chart.js and React ChartJS 2
+- i18next for localization
+
+Mobile app
+- Expo SDK 54
+- React Native 0.81.5
+- Expo Router
+- NativeWind / Tailwind CSS
+- Redux Toolkit
+- Expo SecureStore
+- Expo Notifications
+- Expo Local Authentication
+- React Native Chart Kit
+- React Native WebView
+
+Current Port Reference
+
+ Live server ports
+
+frontend:   80:80     -> host:80     -> container:80
+backend:    82:8004   -> host:82     -> container:8004
+mysql:      4407:3306 -> host:4407   -> container:3306
+phpmyadmin: 8081:80   -> host:8081   -> container:80
+redis:      6389:6379 -> host:6389   -> container:6379
+
+
+Repository compose ports
+The repository `docker-compose.yml` uses a different local-development mapping:
+
+```text
+backend:    8000:80
+frontend:    8005:80
+mysql:       4406:3306
+phpmyadmin:  8080:80
+redis:       6379:6379
+ai-service:  5000:5000
+```
+
+For the live mobile deployment, use the live server ports, not the local repo defaults.
+
+ Current Live URLs
+
+- Web landing page: `https://caps-test2.coeofjrmsu.com`
+- Live backend API: `http://18.142.190.113:82`
+- APK download route: `http://18.142.190.113:82/download/caps.apk`
+- Alternative APK route: `http://18.142.190.113:82/downloads/caps.apk`
+
+ How to Download the CAPS App
+
+1. Open the CAPS web landing page on an Android phone:
+   `https://caps-test2.coeofjrmsu.com`
+2. Tap the **hamburger menu** on the page.
+3. Tap **Download**.
+4. The browser starts downloading the `CAPS.apk` file.
+5. After the download finishes, open the file to start installation.
+6. If the phone asks for permission to install apps from unknown sources, allow it.
+7. Once installed, open the app. It is already connected to the live CAPS backend.
+
+ Where the file is saved on the phone
+The downloaded APK is usually saved in one of these locations:
+
+- Downloads folder
+- Files app
+- My Files app
+- Browser Downloads section
+
+ Mobile App Configuration
+
+The mobile app uses environment variables for deployment. The live backend URL should be set in `FrontendMobile/.env`.
+
+Example:
+
+EXPO_PUBLIC_API_URL=http://18.142.190.113:82
+EXPO_PUBLIC_AI_SERVICE_URL=http://18.142.190.113:82
+
+The app reads these values during build time, so the APK must be rebuilt whenever the backend URL changes.
+
+ Android APK Build Flow
+
+1. Open `FrontendMobile`.
+2. Install dependencies:
+
+npm install
+
+3. Make sure `FrontendMobile/.env` contains the live backend values.
+4. Build the Android release APK.
+5. Copy the generated APK to:
+
+Backend - Deployment/public/apk/CAPS.apk
+
+The project also includes a helper script:
+
+	npm run build:release
+
+
+This copies `android/app/build/outputs/apk/release/app-release.apk` into the backend download folder when the APK already exists.
+
+ Backend Deployment Summary
+
+The live backend is deployed using Docker Compose on the shared server. The backend container is exposed through host port `82`, while MySQL, Redis, and phpMyAdmin run as separate services inside the same deployment.
+
+The backend is the single API entry point for both the web and mobile apps.
+
+ How to View the MySQL Database
+
+`phpMyAdmin` is running in the stack, but it cannot be opened directly in the browser.
+
+Alternative Ways: 
+ Option 1: MySQL Workbench over SSH
+This is the easiest way to browse the live database without exposing MySQL publicly.
+
+Use these connection values:
+
+- Connection Method: `Standard TCP/IP over SSH`
+- SSH Hostname: `18.142.190.113`
+- SSH Username: the SSH user used for the server, usually `ubuntu`
+- SSH Key File: the `.pem` file used to connect to the server
+- MySQL Hostname: `127.0.0.1`
+- MySQL Server Port: `4407`
+- Username: `root` or the live DB user provided by the deployment setup
+- Password: the live MySQL password
+
+After connecting, browse the `laravel` database and check tables such as:
+
+- `users`
+- `migrations`
+- `notifications`
+- any other live application tables you want to verify
+
+ Option 2: Server terminal access
+If you only need to inspect data from the server terminal, you can use Docker directly:
+
+docker exec -it caps-mysql mysql -u root -p
+
+Once inside MySQL, you can run:
+
+SHOW DATABASES;
+USE laravel;
+SHOW TABLES;
+SELECT COUNT(*) FROM users;
+SELECT * FROM migrations ORDER BY id DESC LIMIT 10;
+
+Verification Checklist
+
+Before considering deployment complete, confirm the following:
+
+- The web landing page opens correctly.
+- The hamburger menu shows the Download option.
+- The APK file downloads successfully.
+- The app installs on an Android device.
+- The app can reach the live backend API.
+- Login and basic navigation work after installation.
+- The live MySQL database can be viewed through Workbench, phpMyAdmin tunnel, or terminal access.

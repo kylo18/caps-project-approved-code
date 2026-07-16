@@ -14,6 +14,7 @@ class PracticeExamResult extends Model
     protected $primaryKey = 'resultID';
 
     protected $fillable = [
+        'attempt_id',
         'userID',
         'subjectID',
         'totalPoints',
@@ -29,5 +30,10 @@ class PracticeExamResult extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'userID', 'userID');
+    }
+
+    public function answers()
+    {
+        return $this->hasMany(PracticeExamAnswer::class, 'result_id', 'resultID');
     }
 }

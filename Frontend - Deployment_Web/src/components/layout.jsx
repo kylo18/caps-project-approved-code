@@ -101,7 +101,7 @@ const Layout = () => {
             />
           )}
         <div
-          className={`flex flex-1 flex-col ${
+          className={`flex flex-1 flex-col min-w-0 overflow-x-hidden ${
             isTutorialPage ||
             isPrintQualifyingExam ||
             isPrintPersonalQuiz ||
@@ -118,7 +118,7 @@ const Layout = () => {
             <Header title={roleTitle} className="lg:hidden" />
           )}
           <main
-            className={`${isTutorialPage || isQuizPage || isPracticeExamPage || isDashboard ? "" : "lg:px-4"} h-full bg-white`}
+            className={`${isTutorialPage || isQuizPage || isPracticeExamPage || isStudentDashboardPage ? "" : "lg:px-4"} h-full`}
           >
             <Outlet context={{ selectedSubject, setSelectedSubject }} />
           </main>

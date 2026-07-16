@@ -40,6 +40,11 @@ class ClassEnrollmentController extends Controller
             }
 
             try {
+                // Support both 'classCode' and 'code' (Home page vs Classes page)
+                if (!$request->has('classCode') && $request->has('code')) {
+                    $request->merge(['classCode' => $request->code]);
+                }
+
                 $validated = $request->validate([
                     'classCode' => 'required|string|size:6',
                 ]);
@@ -215,6 +220,8 @@ class ClassEnrollmentController extends Controller
                 ], 404);
             }
 
+            $class->load(['subject']);
+
             // Get total number of quizzes assigned to this class
             $totalQuizzes = ClassPersonalQuiz::where('classID', $classID)->count();
 
@@ -269,6 +276,11 @@ class ClassEnrollmentController extends Controller
                     'classID' => $class->classID,
                     'className' => $class->className,
                     'classCode' => $class->classCode,
+                    'description' => $class->description,
+                    'schedule' => $class->schedule,
+                    'isActive' => $class->isActive,
+                    'subjectID' => $class->subjectID,
+                    'subject' => $class->subject,
                 ],
                 'students' => $students,
                 'total' => $students->count(),
@@ -319,14 +331,27 @@ class ClassEnrollmentController extends Controller
                     'class.faculty',
                     'class.faculty.program'
                 ])
-                ->orderBy('enrolledAt', 'desc')
                 ->get();
+
+            Log::info('Fetched enrollments for student', [
+                'userID' => $user->userID,
+                'count' => $enrollments->count()
+            ]);
 
             // Format the response
             $classes = $enrollments->map(function ($enrollment) {
                 $class = $enrollment->class;
                 
+                // Fallback: if relationship is null but classID exists, try direct lookup
+                if (!$class && $enrollment->classID) {
+                    $class = ClassModel::with(['subject', 'faculty'])->find($enrollment->classID);
+                }
+
                 if (!$class) {
+                    Log::warning('Enrollment found but class missing', [
+                        'enrollmentID' => $enrollment->enrollmentID,
+                        'classID' => $enrollment->classID
+                    ]);
                     return null;
                 }
 

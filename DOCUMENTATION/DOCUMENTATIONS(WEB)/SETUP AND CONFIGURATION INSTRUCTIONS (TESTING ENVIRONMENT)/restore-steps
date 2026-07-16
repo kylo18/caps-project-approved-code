@@ -1,0 +1,37 @@
+1. Copy the backup files from Production.
+    Note: Make sure network firewall has been configured together with passwordless ssh.
+
+    scp @<PROD_SERVER_INTERNAL_IP>:/docker-data/ubuntu/backups/CAPS/backup_20250503_003105.tar.gz /home/ubuntu/CAPS/COPIED_BACKUP/
+
+2. Stop the running containers if any.
+
+    cd <PROJECT_DIRECTORY>
+    docker-compose stop
+
+3. restore by running the command below
+
+    tar -xzvf /home/ubuntu/CAPS/COPIED_BACKUP/backup_20250503_003105.tar.gz -C /home/ubuntu/CAPS/RESTORED_DATA
+
+4. Move the restored file to the main System's docker-data location
+    NOTE: backup the existing docker-data folder if necessary.
+    To backup, run below command
+
+    mv /home/ubuntu/CAPS/docker-data /home/ubuntu/CAPS/docker-data_<BACKUP_NAME>
+
+   # Move the restored data
+   mv /home/ubuntu/CAPS/RESTORED_DATA/docker-data/ /home/ubuntu/CAPS/
+
+5. Validate  
+
+ls -lht /home/ubuntu/CAPS/docker-data
+total 8.0K
+drwxr-xr-x 8 ubuntu ubuntu 4.0K May  2 23:43 mysql_data
+drwxrwxr-x 4 ubuntu ubuntu 4.0K Apr 29 17:00 backend_pictures
+
+
+6. Start the containers
+
+cd <PROJECT_DIRECTORY>
+    docker-compose start
+
+7. Confirmed if data have been restored successfully by navigating the system.

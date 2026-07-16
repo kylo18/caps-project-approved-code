@@ -11,6 +11,10 @@ import FacultyDashboard from "./pages/FacultyDashboard";
 import ProgramChairDashboard from "./pages/ProgramChairDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AssoDeanDashboard from "./pages/AssoDeanDashboard";
+import ScoreHistory from "./pages/ScoreHistory";
+import Leaderboard from "./pages/Leaderboard";
+import ContentAnalytics from "./pages/ContentAnalytics";
+import DifficultyAnalytics from "./pages/DifficultyAnalytics";
 
 import Users from "./pages/Users";
 
@@ -28,14 +32,15 @@ import ForgotPasswordForm from "./components/forgotPassForm";
 import ResetUserCodePage from "./components/resetUserCodeForm";
 import ForgotUserCodeForm from "./components/forgotUserCodeForm";
 import PracticeExamInfo from "./pages/PracticeExamInfo";
+import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 
 import PrintQualifyingExam from "./pages/PrintQualifyingExam";
 import PrintPersonalQuiz from "./pages/PrintPersonalQuiz";
 import SubjectOverview from "./pages/SubjectOverview";
 
-import Libraries from "./pages/Libraries";
-import Sessions from "./pages/Sessions";
-import Reports from "./pages/Reports";
+import Libraries from "./pages/Libraries";  //this is for quizzes in sidebar
+import Sessions from "./pages/Sessions";    //this is for Sessions in sidebar
+import Reports from "./pages/Reports";     
 import Class from "./pages/Class";
 import ClassContent from "./pages/ClassContent";
 import StudentClasses from "./pages/StudentClasses";
@@ -54,11 +59,26 @@ import QuizInfo from "./pages/QuizInfo";
 import StudentQuiz from "./pages/StudentQuiz";
 import StudentQuizResults from "./pages/StudentQuizResults";
 
+//new added: this is for support page
+import SupportPage from "./pages/SupportPage";
+
+//new added: this is for student enhancement page
+import StudentEnhancement from "./pages/StudentEnhancement"; // adjust path if needed
+
+//new added: this is for admin student enhancement page
+import AdminStudentEnhancement from "./pages/AdminStudentEnhancement";
+
+//new added: this is for students analytics
+import AnalyticsPage from "./pages/AnalyticsPage";
+
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        {/*<Route path="/" element={<Login />} />*/}
+        <Route path="/" element={<LandingPage />} />  {/*route for the landing page*/}
+        
+        <Route path="/testLogin" element={<TestLogin />} />
 
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -66,9 +86,12 @@ function App() {
         <Route path="/reset-user-code" element={<ResetUserCodePage />} />
         <Route path="/forgot-user-code" element={<ForgotUserCodeForm />} />
         <Route path="/team-caps" element={<Credits />} />
+        {/*<Route path="/google-auth-callback" element={<GoogleAuthCallback />} />*/}
+        <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
+        <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
 
         {/* Public Landing Page */}
-        <Route path="/landing" element={<LandingPage />} />
+        {/**<Route path="/landing" element={<LandingPage />} />*/}
 
         {/* Libraries - Personal quizzes */}
         <Route
@@ -175,6 +198,57 @@ function App() {
         >
           <Route index element={<StudentDashboard />} />
           <Route path="dashboard" element={<StudentDashboard />} />
+        </Route>
+
+        {/* Analytics Routes 
+        <Route
+          path="/analytics/achievements"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<ScoreHistory />} />
+        </Route>
+        <Route
+          path="/analytics/leaderboards"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<Leaderboard />} />
+        </Route>
+        <Route
+          path="/analytics/content-analytics"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<ContentAnalytics />} />
+        </Route>
+        <Route
+          path="/analytics/difficult-analytics"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<DifficultyAnalytics />} />
+        </Route>  */}
+        
+        <Route
+          path="/analytics/achievements"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AnalyticsPage />} />
+        </Route>
+        <Route
+          path="/analytics/leaderboards"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AnalyticsPage />} />
+        </Route>
+        <Route
+          path="/analytics/content-analytics"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AnalyticsPage />} />
+        </Route>
+        <Route
+          path="/analytics/difficult-analytics"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AnalyticsPage />} />
         </Route>
 
         {/* Faculty Routes */}
@@ -288,11 +362,36 @@ function App() {
           <Route index element={<StudentQuizResults />} />
         </Route>
 
+        
+        <Route  //new added: for support page
+          path="/support"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<SupportPage />} />
+        </Route>
+
         {/* Users Route */}
         <Route path="/users" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<Users />} />
           <Route path="users" element={<Users />} />
         </Route>
+
+        {/*new added: for student enhancement page */}
+        <Route
+          path="/analytics/enhancement"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<StudentEnhancement />} />
+        </Route>
+
+        {/*new added: for admin student page*/}
+        <Route
+          path="/admin/enhancement"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AdminStudentEnhancement />} />
+        </Route>
+
       </Routes>
     </Router>
   );

@@ -12,10 +12,6 @@ use Modules\Subjects\Models\Subject;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Modules\Users\Models\User;
-use Modules\PersonalExams\Models\PersonalQuiz;
-use Modules\PersonalExams\Models\PersonalQuizQuestion;
-use Modules\PersonalExams\Models\PersonalQuizChoice;
-use Illuminate\Support\Facades\Storage;
 
 class PrintController extends Controller
 {
@@ -26,32 +22,13 @@ class PrintController extends Controller
         if (!$path) {
             return null;
         }
-
-        // If it's already a full URL, normalize to https and return
         if (\Illuminate\Support\Str::startsWith($path, ['http://', 'https://'])) {
             return preg_replace('/^http:/i', 'https:', $path);
         }
-
-        // Normalize paths that may already include /storage/ prefix
-        $cleanPath = $path;
-        if (\Illuminate\Support\Str::startsWith($path, '/storage/')) {
-            $cleanPath = \Illuminate\Support\Str::after($path, '/storage/');
-        } elseif (\Illuminate\Support\Str::startsWith($path, 'storage/')) {
-            $cleanPath = \Illuminate\Support\Str::after($path, 'storage/');
-        }
-
-        // Check if file exists in public storage using normalized path
-        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($cleanPath)) {
-            // If it still looks like a storage path (question_images or choices), generate URL anyway
-            if (\Illuminate\Support\Str::contains($cleanPath, 'question_images/') ||
-                \Illuminate\Support\Str::contains($cleanPath, 'choices/')) {
-                $url = asset('storage/' . $cleanPath);
-                return preg_replace('/^http:/i', 'https:', $url);
-            }
+        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
             return null;
         }
-
-        $url = asset('storage/' . $cleanPath);
+        $url = asset('storage/' . $path);
         return preg_replace('/^http:/i', 'https:', $url);
     }
 
@@ -253,14 +230,14 @@ class PrintController extends Controller
                     'action' => 'Please contact system administrator to resolve this issue.'
                 ], 500);
             }
+            $totalSubjectPercentage = collect($validated['subjects'])->sum('percentage');
+            $totalDifficultyPercentage = $validated['difficulty_distribution']['easy'] +
+                $validated['difficulty_distribution']['moderate'] +
+                $validated['difficulty_distribution']['hard'];
             try {
-                $totalSubjectPercentage = collect($validated['subjects'])->sum('percentage');
                 if ($totalSubjectPercentage !== 100) {
                     throw new \Exception("Subject percentages sum to {$totalSubjectPercentage}%, expected 100%");
                 }
-                $totalDifficultyPercentage = $validated['difficulty_distribution']['easy'] +
-                                           $validated['difficulty_distribution']['moderate'] +
-                                           $validated['difficulty_distribution']['hard'];
                 if ($totalDifficultyPercentage !== 100) {
                     throw new \Exception("Difficulty percentages sum to {$totalDifficultyPercentage}%, expected 100%");
                 }
@@ -297,8 +274,8 @@ class PrintController extends Controller
                     try {
                         $baseQuery = Question::with(['choices', 'difficulty', 'status', 'purpose'])
                             ->where('subjectID', $subjectData['subjectID'])
-                            ->where('purpose_id', $purpose->id)
-                            ->whereHas('status', function($query) {
+                            //->where('purpose_id', $purpose->id)
+                            ->whereHas('status', function ($query) {
                                 $query->where('name', 'approved');
                             });
                         // Role-based filtering
@@ -402,9 +379,11 @@ class PrintController extends Controller
                                 ]
                             ], 422);
                         }
-                        if ($easyQuestions->count() < $numEasy || 
-                            $moderateQuestions->count() < $numModerate || 
-                            $hardQuestions->count() < $numHard) {
+                        if (
+                            $easyQuestions->count() < $numEasy ||
+                            $moderateQuestions->count() < $numModerate ||
+                            $hardQuestions->count() < $numHard
+                        ) {
                             throw new \Exception("Insufficient questions of required difficulty levels");
                         }
                         $selectedQuestions = collect()
@@ -490,11 +469,12 @@ class PrintController extends Controller
                 $allCorrectAnswers[$qIndex] = $correctChoices;
             }
             $previewData = [
+                'questionsBySubject' => $questionsBySubject,
                 'questions' => $allQuestionsFlat,
                 'totalItems' => count($allQuestionsFlat),
                 'requestedItems' => $totalItems,
                 'purpose' => $validated['purpose'],
-                'examTitle' => match($validated['purpose']) {
+                'examTitle' => match ($validated['purpose']) {
                     'examQuestions' => 'Qualifying Examination',
                     'practiceQuestions' => 'Practice Examination',
                     'personalQuestions' => 'Quiz',
@@ -570,7 +550,7 @@ class PrintController extends Controller
                 ->where('subjectID', $validated['subjectID'])
                 ->where('purpose_id', $purpose->id)
                 ->where('userID', $user->userID)
-                ->whereHas('status', function($query) {
+                ->whereHas('status', function ($query) {
                     $query->where('name', 'approved');
                 });
             $allQuestions = $baseQuery->get();
@@ -661,642 +641,12 @@ class PrintController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
             ]);
-            return response()->json([   
+            return response()->json([
                 'status' => 'error',
                 'message' => 'System Error',
                 'details' => 'An unexpected error occurred while processing your request.',
                 'code' => 'SYSTEM_ERROR',
                 'action' => 'Please try again later. If the problem persists, contact system administrator.'
-            ], 500);
-        }
-    }
-
-        /**
-     * Get all questions and choices for a personal quiz.
-     * Used for the question selection UI before PDF generation.
-     * Only accessible by faculty (roleID 2,3,4,5).
-     */
-    public function getPersonalQuizQuestions(Request $request, $personalQuizID)
-    {
-        try {
-            $user = Auth::user();
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 401);
-            }
-
-            // Check if user is faculty (roleID 2,3,4,5)
-            if (!in_array($user->roleID, [2, 3, 4, 5])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only faculty members can access this feature.',
-                ], 403);
-            }
-
-            // Get personal quiz
-            $personalQuiz = PersonalQuiz::with(['subject', 'quizType', 'creator', 'classes'])
-                ->find($personalQuizID);
-
-            if (!$personalQuiz) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Personal quiz not found.',
-                ], 404);
-            }
-
-            // Verify user has access to this quiz
-            // User can access if:
-            // 1. They created it, OR
-            // 2. They are Program Chair/Dean/Associate Dean (roleID 3,4,5)
-            $hasAccess = false;
-            if ($personalQuiz->created_by === $user->userID) {
-                $hasAccess = true;
-            } elseif (in_array($user->roleID, [3, 4, 5])) {
-                $hasAccess = true;
-            }
-
-            if (!$hasAccess) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to access this quiz.',
-                ], 403);
-            }
-
-            // Get all questions for this quiz with choices
-            $questions = PersonalQuizQuestion::with(['personalQuizChoices' => function($query) {
-                $query->orderBy('position', 'asc');
-            }])
-                ->where('personalQuizID', $personalQuizID)
-                ->orderBy('personalQuizQuestionID', 'asc')
-                ->get();
-
-            if ($questions->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This quiz has no questions.',
-                ], 404);
-            }
-
-            // Format questions and choices for selection UI
-            $formattedQuestions = [];
-            foreach ($questions as $index => $question) {
-                try {
-                    // Decrypt question text
-                    $questionText = null;
-                    if ($question->personalQuizQuestionText) {
-                        try {
-                            $questionText = Crypt::decryptString($question->personalQuizQuestionText);
-                        } catch (\Exception $e) {
-                            Log::warning('Failed to decrypt question text', [
-                                'question_id' => $question->personalQuizQuestionID,
-                                'error' => $e->getMessage(),
-                            ]);
-                            $questionText = '[Decryption Error]';
-                        }
-                    }
-
-                    // Get question image URL (same handling as main QuestionController)
-                    $questionImageUrl = $this->generateUrl($question->personalQuizImage);
-
-                    // Format choices
-                    $formattedChoices = [];
-                    foreach ($question->personalQuizChoices as $choice) {
-                        try {
-                            // Decrypt choice text
-                            $choiceText = null;
-                            if ($choice->choiceText) {
-                                try {
-                                    $choiceText = Crypt::decryptString($choice->choiceText);
-                                } catch (\Exception $e) {
-                                    Log::warning('Failed to decrypt choice text', [
-                                        'choice_id' => $choice->personalQuizChoiceID,
-                                        'error' => $e->getMessage(),
-                                    ]);
-                                    $choiceText = '[Decryption Error]';
-                                }
-                            }
-
-                            // Get choice image URL (same handling as main QuestionController)
-                            $choiceImageUrl = $this->generateUrl($choice->image);
-
-                            $formattedChoices[] = [
-                                'personalQuizChoiceID' => $choice->personalQuizChoiceID,
-                                'choiceText' => $choiceText,
-                                'choiceImageUrl' => $choiceImageUrl,
-                                'isCorrect' => $choice->isCorrect,
-                                'position' => $choice->position,
-                            ];
-                        } catch (\Exception $e) {
-                            Log::error('Error formatting choice', [
-                                'choice_id' => $choice->personalQuizChoiceID,
-                                'error' => $e->getMessage(),
-                            ]);
-                        }
-                    }
-
-                    $formattedQuestions[] = [
-                        'personalQuizQuestionID' => $question->personalQuizQuestionID,
-                        'questionText' => $questionText,
-                        'questionImageUrl' => $questionImageUrl,
-                        'score' => $question->personalQuizScore ?? 0,
-                        'choices' => $formattedChoices,
-                        'choicesCount' => count($formattedChoices),
-                    ];
-                } catch (\Exception $e) {
-                    Log::error('Error formatting question', [
-                        'question_id' => $question->personalQuizQuestionID,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Personal quiz questions retrieved successfully.',
-                'data' => [
-                    'quiz' => [
-                        'personalQuizID' => $personalQuiz->personalQuizID,
-                        'title' => $personalQuiz->title,
-                        'description' => $personalQuiz->description,
-                        'instruction' => $personalQuiz->instruction,
-                        'subject' => $personalQuiz->subject ? [
-                            'subjectID' => $personalQuiz->subject->subjectID,
-                            'subjectCode' => $personalQuiz->subject->subjectCode,
-                            'subjectName' => $personalQuiz->subject->subjectName,
-                        ] : null,
-                        'quizType' => $personalQuiz->quizType ? [
-                            'id' => $personalQuiz->quizType->id,
-                            'name' => $personalQuiz->quizType->name,
-                        ] : null,
-                        'createdBy' => $personalQuiz->creator ? [
-                            'userID' => $personalQuiz->creator->userID,
-                            'name' => trim($personalQuiz->creator->firstName . ' ' . $personalQuiz->creator->lastName),
-                        ] : null,
-                        'isAssignedToClass' => $personalQuiz->classes->isNotEmpty(),
-                        'assignedClasses' => $personalQuiz->classes->map(function($class) {
-                            return [
-                                'classID' => $class->classID,
-                                'className' => $class->className,
-                                'startDate' => $class->pivot->startDate,
-                                'deadlineDate' => $class->pivot->deadlineDate,
-                            ];
-                        }),
-                    ],
-                    'questions' => $formattedQuestions,
-                    'totalQuestions' => count($formattedQuestions),
-                ],
-            ], 200);
-        } catch (\Throwable $e) {
-            Log::error('Error retrieving personal quiz questions', [
-                'user_id' => optional(Auth::user())->userID,
-                'personal_quiz_id' => $personalQuizID,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while retrieving quiz questions.',
-            ], 500);
-        }
-    }
-
-    /**
-     * Generate printable data for a personal quiz.
-     * Returns selected questions and choices formatted for PDF generation.
-     * Frontend will handle the actual PDF generation.
-     * Only accessible by faculty (roleID 2,3,4,5).
-     */
-    public function generatePersonalQuizPDF(Request $request)
-    {
-        try {
-            $user = Auth::user();       
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 401);
-            }
-
-            // Check if user is faculty (roleID 2,3,4,5)
-            if (!in_array($user->roleID, [2, 3, 4, 5])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only faculty members can generate PDFs.',
-                ], 403);
-            }
-
-            // Validate input
-            $validated = $request->validate([
-                'personalQuizID' => 'required|integer|exists:personal_quizzes,personalQuizID',
-                'selectedQuestionIDs' => 'required|array|min:1',
-                'selectedQuestionIDs.*' => 'required|integer|exists:personal_quiz_questions,personalQuizQuestionID',
-                'title' => 'required|string|max:255',
-                'instructions' => 'nullable|string',
-                'shuffle_questions' => 'nullable|boolean',
-                'shuffle_choices' => 'nullable|boolean',
-                'include_answer_key' => 'nullable|boolean',
-            ]);
-
-            // Get personal quiz
-            $personalQuiz = PersonalQuiz::with(['subject', 'quizType', 'creator'])
-                ->find($validated['personalQuizID']);
-
-            if (!$personalQuiz) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Personal quiz not found.',
-                ], 404);
-            }
-
-            // Verify user has access to this quiz
-            $hasAccess = false;
-            if ($personalQuiz->created_by === $user->userID) {
-                $hasAccess = true;
-            } elseif (in_array($user->roleID, [3, 4, 5])) {
-                $hasAccess = true;
-            }
-
-            if (!$hasAccess) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to access this quiz.',
-                ], 403);
-            }
-
-            // Get selected questions with choices
-            $selectedQuestions = PersonalQuizQuestion::with(['personalQuizChoices' => function($query) {
-                $query->orderBy('position', 'asc');
-            }])
-                ->where('personalQuizID', $validated['personalQuizID'])
-                ->whereIn('personalQuizQuestionID', $validated['selectedQuestionIDs'])
-                ->get();
-
-            if ($selectedQuestions->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No valid questions found for the selected IDs.',
-                ], 404);
-            }
-
-            // Shuffle questions if requested (maintain order based on selectedQuestionIDs if not shuffled)
-            if ($validated['shuffle_questions'] ?? false) {
-                $selectedQuestions = $selectedQuestions->shuffle();
-            } else {
-                // Maintain order based on selectedQuestionIDs array
-                $orderedQuestions = collect();
-                foreach ($validated['selectedQuestionIDs'] as $questionID) {
-                    $question = $selectedQuestions->firstWhere('personalQuizQuestionID', $questionID);
-                    if ($question) {
-                        $orderedQuestions->push($question);
-                    }
-                }
-                $selectedQuestions = $orderedQuestions;
-            }
-
-            // Format questions and choices for PDF
-            $formattedQuestions = [];
-            $totalPoints = 0;
-
-            foreach ($selectedQuestions as $index => $question) {
-                try {
-                    // Decrypt question text
-                    $questionText = null;
-                    if ($question->personalQuizQuestionText) {
-                        try {
-                            $questionText = Crypt::decryptString($question->personalQuizQuestionText);
-                        } catch (\Exception $e) {
-                            Log::warning('Failed to decrypt question text', [
-                                'question_id' => $question->personalQuizQuestionID,
-                                'error' => $e->getMessage(),
-                            ]);
-                            $questionText = '[Decryption Error]';
-                        }
-                    }
-
-                    // Get question image URL and base64
-                    $questionImageUrl = null;
-                    $questionImageBase64 = null;
-                    if ($question->personalQuizImage) {
-                        if (filter_var($question->personalQuizImage, FILTER_VALIDATE_URL)) {
-                            $questionImageUrl = $question->personalQuizImage;
-                        } else {
-                            $imagePath = $question->personalQuizImage;
-                            if (Storage::disk('public')->exists($imagePath)) {
-                                $questionImageUrl = asset('storage/' . $imagePath);
-                                $questionImageBase64 = $this->getBase64ImageData($imagePath);
-                            }
-                        }
-                    }
-
-                    // Get choices
-                    $choices = $question->personalQuizChoices;
-                    
-                    // Shuffle choices if requested (but keep position 5 "None of the above" at the end)
-                    if ($validated['shuffle_choices'] ?? false) {
-                        $regularChoices = $choices->where('position', '!=', 5)->shuffle();
-                        $noneChoice = $choices->where('position', 5)->first();
-                        $choices = $regularChoices->push($noneChoice)->filter();
-                    }
-
-                    // Format choices
-                    $formattedChoices = [];
-                    foreach ($choices as $choice) {
-                        try {
-                            // Decrypt choice text
-                            $choiceText = null;
-                            if ($choice->choiceText) {
-                                try {
-                                    $choiceText = Crypt::decryptString($choice->choiceText);
-                                } catch (\Exception $e) {
-                                    Log::warning('Failed to decrypt choice text', [
-                                        'choice_id' => $choice->personalQuizChoiceID,
-                                        'error' => $e->getMessage(),
-                                    ]);
-                                    $choiceText = '[Decryption Error]';
-                                }
-                            }
-
-                            // Get choice image URL and base64
-                            $choiceImageUrl = null;
-                            $choiceImageBase64 = null;
-                            if ($choice->image) {
-                                if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
-                                    $choiceImageUrl = $choice->image;
-                                } else {
-                                    $imagePath = $choice->image;
-                                    if (Storage::disk('public')->exists($imagePath)) {
-                                        $choiceImageUrl = asset('storage/' . $imagePath);
-                                        $choiceImageBase64 = $this->getBase64ImageData($imagePath);
-                                    }
-                                }
-                            }
-
-                            $formattedChoices[] = [
-                                'personalQuizChoiceID' => $choice->personalQuizChoiceID,
-                                'choiceText' => $choiceText,
-                                'choiceImageUrl' => $choiceImageUrl,
-                                'choiceImageBase64' => $choiceImageBase64,
-                                'isCorrect' => $choice->isCorrect,
-                                'position' => $choice->position,
-                            ];
-                        } catch (\Exception $e) {
-                            Log::error('Error formatting choice', [
-                                'choice_id' => $choice->personalQuizChoiceID,
-                                'error' => $e->getMessage(),
-                            ]);
-                        }
-                    }
-
-                    $totalPoints += $question->personalQuizScore ?? 0;
-
-                    $formattedQuestions[] = [
-                        'questionNumber' => $index + 1,
-                        'personalQuizQuestionID' => $question->personalQuizQuestionID,
-                        'questionText' => $questionText,
-                        'questionImageUrl' => $questionImageUrl,
-                        'questionImageBase64' => $questionImageBase64,
-                        'score' => $question->personalQuizScore ?? 0,
-                        'choices' => $formattedChoices,
-                    ];
-                } catch (\Exception $e) {
-                    Log::error('Error formatting question', [
-                        'question_id' => $question->personalQuizQuestionID,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            // Prepare answer key if requested
-            $answerKey = null;
-            if ($validated['include_answer_key'] ?? false) {
-                $answerKey = [];
-                foreach ($formattedQuestions as $q) {
-                    $correctChoices = array_filter($q['choices'], function($choice) {
-                        return $choice['isCorrect'] === true;
-                    });
-                    $answerKey[] = [
-                        'questionNumber' => $q['questionNumber'],
-                        'correctChoices' => array_values($correctChoices),
-                    ];
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Personal quiz PDF data generated successfully.',
-                'data' => [
-                    'quiz' => [
-                        'personalQuizID' => $personalQuiz->personalQuizID,
-                        'title' => $validated['title'],
-                        'instructions' => $validated['instructions'] ?? $personalQuiz->instruction ?? '',
-                        'originalTitle' => $personalQuiz->title,
-                        'description' => $personalQuiz->description,
-                        'subject' => $personalQuiz->subject ? [
-                            'subjectID' => $personalQuiz->subject->subjectID,
-                            'subjectCode' => $personalQuiz->subject->subjectCode,
-                            'subjectName' => $personalQuiz->subject->subjectName,
-                        ] : null,
-                        'quizType' => $personalQuiz->quizType ? [
-                            'id' => $personalQuiz->quizType->id,
-                            'name' => $personalQuiz->quizType->name,
-                        ] : null,
-                        'createdBy' => $personalQuiz->creator ? [
-                            'userID' => $personalQuiz->creator->userID,
-                            'name' => trim($personalQuiz->creator->firstName . ' ' . $personalQuiz->creator->lastName),
-                        ] : null,
-                    ],
-                    'questions' => $formattedQuestions,
-                    'statistics' => [
-                        'totalQuestions' => count($formattedQuestions),
-                        'selectedQuestions' => count($validated['selectedQuestionIDs']),
-                        'totalPoints' => $totalPoints,
-                    ],
-                    'settings' => [
-                        'shuffleQuestions' => $validated['shuffle_questions'] ?? false,
-                        'shuffleChoices' => $validated['shuffle_choices'] ?? false,
-                        'includeAnswerKey' => $validated['include_answer_key'] ?? false,
-                    ],
-                    'answerKey' => $answerKey,
-                    'generatedAt' => now()->toIso8601String(),
-                ],
-            ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Throwable $e) {
-            Log::error('Error generating personal quiz PDF data', [
-                'user_id' => optional(Auth::user())->userID,
-                'personal_quiz_id' => $request->input('personalQuizID'),
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while generating the PDF data.',
-            ], 500);
-        }
-    }
-
-    /**
-     * Return the number of easy, moderate, and hard approved exam questions for every subject.
-     */
-    public function getSubjectQuestionDifficultyCounts(Request $request)
-    {
-        try {
-            $user = Auth::user();
-            if (!$user) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Authentication Required',
-                    'details' => 'You must be logged in to view question difficulty counts.',
-                    'code' => 'AUTH_ERROR',
-                    'action' => 'Please log in and try again.',
-                ], 401);
-            }
-
-            if (!in_array($user->roleID, [2, 3, 4, 5])) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Access Denied',
-                    'details' => 'Only Faculty, Program Chair, Dean, and Associate Dean can view question difficulty counts.',
-                    'code' => 'FORBIDDEN',
-                    'action' => 'Contact your administrator if you need access to this information.',
-                ], 403);
-            }
-
-            $purpose = Purpose::where('name', 'examQuestions')->first();
-            if (!$purpose) {
-                Log::error('ExamQuestions purpose not found while fetching difficulty counts');
-
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'System Configuration Error',
-                    'details' => 'Unable to retrieve question counts because exam question settings are not configured.',
-                    'code' => 'CONFIG_ERROR',
-                    'action' => 'Please contact the system administrator.',
-                ], 500);
-            }
-
-            $subjectQuery = Subject::query()->with(['program', 'yearLevel']);
-
-            if ($user->roleID === 2) {
-                $subjectQuery->whereHas('faculty', function ($query) use ($user) {
-                    $query->where('faculty_subjects.facultyID', $user->userID);
-                });
-            } elseif ($user->roleID === 3) {
-                $subjectQuery->where(function ($query) use ($user) {
-                    $query->where('programID', $user->programID)
-                        ->orWhere('programID', 6);
-                });
-            }
-
-            $subjects = $subjectQuery->orderBy('subjectID')->get();
-
-            if ($subjects->isEmpty()) {
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'No subjects were found for your account.',
-                    'details' => 'There are no subjects assigned or available to you at this time.',
-                    'data' => [],
-                    'summary' => [
-                        'total_subjects' => 0,
-                        'total_questions' => 0,
-                        'easy' => 0,
-                        'moderate' => 0,
-                        'hard' => 0,
-                    ],
-                ], 200);
-            }
-
-            $subjectIDs = $subjects->pluck('subjectID');
-
-            $questionQuery = Question::query()
-                ->selectRaw('subjectID, difficulties.name as difficulty, COUNT(*) as count')
-                ->join('difficulties', 'questions.difficulty_id', '=', 'difficulties.id')
-                ->join('statuses', 'questions.status_id', '=', 'statuses.id')
-                ->where('questions.purpose_id', $purpose->id)
-                ->where('statuses.name', 'approved')
-                ->whereIn('questions.subjectID', $subjectIDs);
-
-            if ($user->roleID === 2) {
-                $questionQuery->where('questions.userID', $user->userID);
-            } elseif ($user->roleID === 3) {
-                $validUserIDs = User::where('programID', $user->programID)->pluck('userID');
-                $questionQuery->whereIn('questions.userID', $validUserIDs);
-            } elseif ($user->roleID === 5) {
-                $validUserIDs = User::where('campusID', $user->campusID)->pluck('userID');
-                $questionQuery->whereIn('questions.userID', $validUserIDs);
-            }
-
-            $countsBySubject = $questionQuery
-                ->groupBy('questions.subjectID', 'difficulties.name')
-                ->get()
-                ->groupBy('subjectID');
-
-            $data = $subjects->map(function ($subject) use ($countsBySubject) {
-                $subjectCounts = $countsBySubject->get($subject->subjectID, collect());
-
-                $easy = (int) optional($subjectCounts->firstWhere('difficulty', 'easy'))->count ?? 0;
-                $moderate = (int) optional($subjectCounts->firstWhere('difficulty', 'moderate'))->count ?? 0;
-                $hard = (int) optional($subjectCounts->firstWhere('difficulty', 'hard'))->count ?? 0;
-
-                return [
-                    'subjectID' => $subject->subjectID,
-                    'subjectCode' => $subject->subjectCode,
-                    'subjectName' => $subject->subjectName,
-                    'programID' => $subject->programID,
-                    'programName' => $subject->program ? $subject->program->programName : null,
-                    'yearLevelID' => $subject->yearLevelID,
-                    'yearLevel' => $subject->yearLevel ? $subject->yearLevel->name : null,
-                    'difficulty_counts' => [
-                        'easy' => $easy,
-                        'moderate' => $moderate,
-                        'hard' => $hard,
-                        'total' => $easy + $moderate + $hard,
-                    ],
-                ];
-            })->values();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Question difficulty counts retrieved successfully.',
-                'details' => 'Counts include approved exam questions only, filtered by your role and access level.',
-                'data' => $data,
-                'summary' => [
-                    'total_subjects' => $data->count(),
-                    'total_questions' => $data->sum(fn ($subject) => $subject['difficulty_counts']['total']),
-                    'easy' => $data->sum(fn ($subject) => $subject['difficulty_counts']['easy']),
-                    'moderate' => $data->sum(fn ($subject) => $subject['difficulty_counts']['moderate']),
-                    'hard' => $data->sum(fn ($subject) => $subject['difficulty_counts']['hard']),
-                ],
-            ], 200);
-        } catch (\Throwable $e) {
-            Log::error('Error retrieving subject question difficulty counts', [
-                'user_id' => optional(Auth::user())->userID,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unable to Retrieve Question Counts',
-                'details' => 'An unexpected error occurred while loading question difficulty counts. Please try again later.',
-                'code' => 'SERVER_ERROR',
-                'action' => 'If the problem continues, contact the system administrator.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

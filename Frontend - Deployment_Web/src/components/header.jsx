@@ -5,26 +5,51 @@ import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import collegeLogo from "/src/assets/college-logo.png";
 import { logoutUser } from "../utils/logoutUser";
-import ChangelogModal from "./ChangelogModal";
-import ProfileModalsHost from "./ProfileModalsHost";
-import { useUserProfile } from "../hooks/useUserProfile";
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../services/notificationService";
+
+// Utility to get a random color from a palette
+const AVATAR_COLORS = [
+  "bg-orange-500",
+  "bg-green-700",
+  "bg-blue-600",
+  "bg-purple-600",
+  "bg-pink-500",
+  "bg-yellow-500",
+  "bg-red-500",
+  "bg-teal-600",
+  "bg-indigo-600",
+];
+function getRandomAvatarColor() {
+  return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+}
+
+function getAvatarColorKey(userInfo) {
+  // Prefer email, fallback to userCode, fallback to 'default'
+  return userInfo?.email || userInfo?.userCode || "default";
+}
+
+function getPersistedAvatarColor(userInfo) {
+  const key = getAvatarColorKey(userInfo);
+  return localStorage.getItem("avatarColor_" + key);
+}
+
+function setPersistedAvatarColor(userInfo, color) {
+  const key = getAvatarColorKey(userInfo);
+  localStorage.setItem("avatarColor_" + key, color);
+}
+
+function clearPersistedAvatarColor(userInfo) {
+  const key = getAvatarColorKey(userInfo);
+  localStorage.removeItem("avatarColor_" + key);
+}
 
 // Web App Header
-const CHANGELOG_KEY = "changelog_v2.0.0_seen";
-
 const AdminHeader = ({ title, className = "" }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const profile = useUserProfile();
-  const {
-    userInfo,
-    avatarColor,
-    showProfileModal,
-    setShowProfileModal,
-    showChangePassword,
-    clearUserAvatarColor,
-  } = profile;
+  const [userInfo, setUserInfo] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [showChangelog, setShowChangelog] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isTutorialPage = location.pathname.includes("/help");
@@ -34,38 +59,96 @@ const AdminHeader = ({ title, className = "" }) => {
   const dropdownRef = useRef(null);
   const { toast, showToast } = useToast();
 
-  // Dark mode toggle
-  const [isDarkMode, setIsDarkMode] = useState(
-    () => localStorage.getItem("theme") === "dark",
-  );
+  const [isChangePasswordSubmitting, setIsChangePasswordSubmitting] =
+    useState(false);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDarkMode);
-    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
-    // Let other components (like sidebar) stay in sync.
-    window.dispatchEvent(new Event("themechange"));
-  }, [isDarkMode]);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
-  // Keep state in sync if another component (e.g. sidebar) toggles the theme.
-  useEffect(() => {
-    const handler = () =>
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    window.addEventListener("themechange", handler);
-    return () => window.removeEventListener("themechange", handler);
-  }, []);
+  const [formData, setFormData] = useState({
+    password: "",
+    new_password: "",
+    new_password_confirmation: "",
+  });
 
-  const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  // Profile form states
+  const [profileFormData, setProfileFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    userCode: "",
+  });
+  const [isProfileSubmitting, setIsProfileSubmitting] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
+
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
+
+  const [wasProfileModalOpen, setWasProfileModalOpen] = useState(false);
+
+  // Store a persistent color for the avatar per user
+  const [avatarColor, setAvatarColor] = useState("bg-gray-300");
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // Ref for logout modal content
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState({ title: "", message: "" });
+  const [announcementSubmitting, setAnnouncementSubmitting] = useState(false);
+  const [announcementError, setAnnouncementError] = useState("");
+
+  // Refs for modal content
+  const profileModalRef = useRef(null);
+  const changePasswordModalRef = useRef(null);
   const logoutModalRef = useRef(null);
+  const notifRef = useRef(null);
 
   // Close dropdown if logout modal is opened
   useEffect(() => {
     if (showLogoutModal || showProfileModal || showChangePassword)
       setDropdownOpen(false);
   }, [showLogoutModal, showProfileModal, showChangePassword]);
+
+  // Close Profile Modal on outside click for <=448px
+  useEffect(() => {
+    if (!showProfileModal) return;
+    function handleClickOutside(event) {
+      if (
+        window.innerWidth <= 448 &&
+        profileModalRef.current &&
+        !profileModalRef.current.contains(event.target)
+      ) {
+        setShowProfileModal(false);
+        setProfileError("");
+        setProfileSuccess("");
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showProfileModal]);
+
+  // Close Change Password Modal on outside click for <=448px
+  useEffect(() => {
+    if (!showChangePassword) return;
+    function handleClickOutside(event) {
+      if (
+        window.innerWidth <= 448 &&
+        changePasswordModalRef.current &&
+        !changePasswordModalRef.current.contains(event.target)
+      ) {
+        handleCloseChangePassword();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showChangePassword]);
 
   // Close Logout Modal on outside click for <=448px
   useEffect(() => {
@@ -83,6 +166,63 @@ const AdminHeader = ({ title, className = "" }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showLogoutModal]);
 
+  // Prevent background scrolling when profile modal is open
+  useEffect(() => {
+    if (showProfileModal || showChangePassword) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [showProfileModal, showChangePassword]);
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        const response = await fetch(`${apiUrl}/user/profile`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch user info");
+        }
+
+        const data = await response.json();
+        setUserInfo(data);
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    fetchUserInfo();
+  }, [apiUrl]);
+
+  useEffect(() => {
+    if (userInfo) {
+      let color = getPersistedAvatarColor(userInfo);
+      if (!color) {
+        color = getRandomAvatarColor();
+        setPersistedAvatarColor(userInfo, color);
+      }
+      setAvatarColor(color);
+    }
+  }, [userInfo]);
+
   // Handle the logout process
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -98,7 +238,7 @@ const AdminHeader = ({ title, className = "" }) => {
     } catch (error) {
       // Ignore network/backend errors, always log out
     } finally {
-      clearUserAvatarColor();
+      if (userInfo) clearPersistedAvatarColor(userInfo);
       logoutUser(showToast, navigate);
       setIsLoggingOut(false);
       setShowLogoutModal(false);
@@ -118,16 +258,293 @@ const AdminHeader = ({ title, className = "" }) => {
     };
   }, []);
 
+  const handleChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    setError("");
+    setIsChangePasswordSubmitting(true);
+
+    // Client-side validation
+    if (formData.new_password.length < 8) {
+      setError("New password must be at least 8 characters long.");
+      setIsChangePasswordSubmitting(false);
+      return;
+    }
+
+    if (formData.new_password !== formData.new_password_confirmation) {
+      setError("Passwords do not match.");
+      setIsChangePasswordSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiUrl}/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setMessage(result.message || "Password changed successfully.");
+        setFormData({
+          password: "",
+          new_password: "",
+          new_password_confirmation: "",
+        });
+        setPasswordVisible(false);
+        setNewPasswordVisible(false);
+        setConfirmPasswordVisible(false);
+
+        showToast("Password changed successfully!", "success");
+
+        handleCloseChangePassword();
+      } else {
+        setError(result.message || "Failed to change password.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again later.");
+      console.error("Change password error:", err);
+    } finally {
+      setIsChangePasswordSubmitting(false);
+    }
+  };
+
+  // Add profile form handlers
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setIsProfileSubmitting(true);
+    setProfileError("");
+    setProfileSuccess("");
+
+    try {
+      const profilePayload = {};
+      Object.entries(profileFormData).forEach(([key, value]) => {
+        if (value.trim() !== "") {
+          profilePayload[key] = value.trim();
+        }
+      });
+
+      const token = sessionStorage.getItem("token");
+      const profileResponse = await fetch(`${apiUrl}/user/update-profile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(profilePayload),
+      });
+
+      const profileData = await profileResponse.json();
+
+      if (profileResponse.ok) {
+        showToast("Profile updated successfully!", "success");
+        // Update local user info
+        setUserInfo((prev) => ({
+          ...prev,
+          fullName:
+            `${profilePayload.firstName} ${profilePayload.lastName}`.trim(),
+          email: profilePayload.email,
+          userCode: profilePayload.userCode,
+        }));
+
+        setTimeout(() => setShowProfileModal(false), 0);
+      } else {
+        setProfileError(profileData.message || "Failed to update profile.");
+      }
+    } catch (err) {
+      console.error("Profile update error:", err);
+      setProfileError("Something went wrong. Please try again later.");
+    } finally {
+      setIsProfileSubmitting(false);
+    }
+  };
+
+  const resetProfileForm = () => {
+    if (userInfo) {
+      const [firstName = "", lastName = ""] = (userInfo.fullName || "").split(
+        " ",
+      );
+      setProfileFormData({
+        firstName: firstName || "",
+        lastName: lastName || "",
+        email: userInfo.email || "",
+        userCode: userInfo.userCode || "",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (userInfo) {
+      resetProfileForm();
+    }
+  }, [userInfo]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await getNotifications();
+        setNotifications(response.data || []);
+        setUnreadCount(response.meta?.unread_count || 0);
+      } catch (err) {}
+    };
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showNotifications]);
+
+  const handleOpenChangePassword = () => {
+    setWasProfileModalOpen(showProfileModal);
+    setShowProfileModal(false);
+    setShowChangePassword(true);
+  };
+
+  const handleCloseChangePassword = () => {
+    setShowChangePassword(false);
+    setFormData({
+      password: "",
+      new_password: "",
+      new_password_confirmation: "",
+    });
+    setPasswordVisible(false);
+    setNewPasswordVisible(false);
+    setConfirmPasswordVisible(false);
+    setError("");
+    setMessage("");
+    if (wasProfileModalOpen) {
+      setTimeout(() => {
+        setShowProfileModal(true);
+      }, 50);
+    }
+  };
+
   return (
     <div className={className}>
-      <div className="outfit-500 border-color fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b bg-white px-6 py-[10px] sm:z-52">
+      <div className="outfit-400 border-color fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b bg-white px-6 py-[10px] sm:z-52">
         <div className="-ml-3 flex items-center gap-2">
           <img src={collegeLogo} alt="College Logo" className="size-[30px]" />
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+
+          {/* Bell Notification Button */}
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => setShowNotifications((prev) => !prev)}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 transition"
+            >
+              <i className={`bx ${showNotifications ? "bxs-bell text-orange-500" : "bx-bell text-gray-500"} text-[20px]`} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 pointer-events-none">
+                <div className="pointer-events-auto w-[340px] max-w-[95vw] rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl flex flex-col max-h-[80vh]">
+                <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-3">
+                  <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
+                    <i className="bx bx-bell text-orange-500" /> Notifications
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {[2, 3, 4, 5].includes(Number(userInfo?.roleID)) && (
+                      <button
+                        onClick={() => { setShowNotifications(false); setShowAnnouncementModal(true); }}
+                        className="flex items-center justify-center h-7 w-7 rounded-full bg-orange-500 hover:bg-orange-600 transition shadow-sm"
+                        title="Create Announcement"
+                      >
+                        <i className="bx bx-plus text-white text-[16px]" />
+                      </button>
+                    )}
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={async () => {
+                          await markAllNotificationsRead();
+                          setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+                          setUnreadCount(0);
+                        }}
+                        className="text-xs font-bold text-orange-500 hover:text-orange-600"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="overflow-y-auto flex flex-col gap-2 flex-1">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                      <i className="bx bx-bell-off text-3xl mb-1 text-gray-300" />
+                      <p className="text-sm text-gray-500">No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={async () => {
+                          if (!item.is_read) {
+                            await markNotificationRead(item.id);
+                            setNotifications((prev) => prev.map((n) => n.id === item.id ? { ...n, is_read: true } : n));
+                            setUnreadCount((prev) => Math.max(0, prev - 1));
+                          }
+                        }}
+                        className={`flex items-start gap-3 rounded-xl p-3 cursor-pointer transition border ${
+                          item.is_read ? "border-transparent hover:bg-gray-50" : "border-orange-50 bg-orange-50/20 hover:bg-orange-50/40"
+                        }`}
+                      >
+                        <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                          <i className="bx bx-megaphone text-base" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className={`text-[13px] font-semibold truncate ${item.is_read ? "text-gray-600" : "text-gray-900"}`}>
+                              {item.title}
+                            </p>
+                            {!item.is_read && <span className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-500" />}
+                          </div>
+                          <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{item.message}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              </div>
+            )}
+          </div>
+
           <span className="text-[14px] text-gray-500">{title}</span>
+
+          
 
           {/* Three-dot Dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -148,7 +565,7 @@ const AdminHeader = ({ title, className = "" }) => {
 
             {/* Dropdown Buttons */}
             {dropdownOpen && (
-              <div className="fade-in 4] absolute top-[44px] right-[-10px] z-51 w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
+              <div className="fade-in absolute top-[44px] right-[-10px] z-51 w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
                 <div className="flex items-center gap-3 border-gray-200 px-2 py-3">
                   <div
                     className={`flex h-8 w-10 items-center justify-center rounded-full ${userInfo ? avatarColor : "bg-gray-300"} text-sm font-bold text-white`}
@@ -185,47 +602,67 @@ const AdminHeader = ({ title, className = "" }) => {
                 </div>
 
                 <div className="mx-1 h-[1px] bg-[rgb(200,200,200)]" />
+
+                {[4, 5].includes(Number(userInfo?.roleID)) && (
+                  <button
+                    onClick={() => { setDropdownOpen(false); navigate("/support?tab=reports"); }}
+                    className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                  >
+                    <i className="bx bx-clipboard mr-2 text-[16px]"></i> All Reports
+                  </button>
+                )}
+
+                <button
+                  onClick={() => { setDropdownOpen(false); navigate("/support?tab=help"); }}
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
+                  <i className="bx bx-help-circle mr-2 text-[16px]"></i> Ask Help
+                </button>
+
+                <button
+                  onClick={() =>
+                    alert("The dark mode feature is still under development.")
+                  }
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
+                  <i className="bx bx-moon mr-2 text-[16px]"></i> Dark Mode
+                </button>
+
+                
+
+                <button
+                  onClick={() => { setDropdownOpen(false); navigate("/support?tab=tickets"); }}
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
+                  <i className="bx bx-receipt mr-2 text-[16px]"></i> My Tickets
+                </button>
+
                 <button
                   onClick={() => setShowProfileModal(true)}
                   className="mt-1 flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-user mr-2 text-[16px]"></i> Profile
+                  <i className="bx bx-cog mr-2 text-[16px]"></i> Settings
                 </button>
 
+                {/*
                 <button
                   onClick={() => {
-                    alert("Dark Mode is coming soon");
+                    if (title !== "Student") {
+                      window.open(
+                        "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
+                        "_blank",
+                      );
+                    } else {
+                      window.open(
+                        "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&gid=1756766640#gid=1756766640",
+                        "_blank",
+                      );
+                    }
                   }}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i
-                    className={`bx ${isDarkMode ? "bx-sun" : "bx-moon"} mr-2 text-[16px]`}
-                  ></i>{" "}
-                  Dark Mode
-                </button>
-
-                <button
-                  onClick={() => {
-                    window.open(
-                      "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&pli=1&gid=1756766640#gid=1756766640",
-                      "_blank",
-                    );
-                  }}
-                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
-                >
-                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i>{" "}
-                  Support
-                </button>
-
-                <button
-                  onClick={() => {
-                    setDropdownOpen(false);
-                    setShowChangelog(true);
-                  }}
-                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
-                >
-                  <i className="bx bx-news mr-2 text-[16px]"></i> Changelog
-                </button>
+                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i> Help & Support
+                </button>*/}
 
                 <button
                   onClick={() => setShowLogoutModal(true)}
@@ -240,17 +677,320 @@ const AdminHeader = ({ title, className = "" }) => {
                     "Log out"
                   )}
                 </button>
+
+                
+
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {showChangelog && (
-        <ChangelogModal onClose={() => setShowChangelog(false)} />
+      {showProfileModal && (
+        <>
+          <div className="outfit-400 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+            <div
+              ref={profileModalRef}
+              className="animate-fade-in-up edit-profile-modal-scrollbar relative mx-0 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-2xl"
+            >
+              <button
+                onClick={() => {
+                  setShowProfileModal(false);
+                  resetProfileForm();
+                  setProfileError("");
+                  setProfileSuccess("");
+                }}
+                className="absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition duration-100 hover:bg-gray-100 hover:text-gray-700"
+              >
+                <i className="bx bx-x text-3xl"></i>
+              </button>
+
+              {/* Profile Picture and Name */}
+              <div className="mb-3 flex items-center gap-4 p-4">
+                <div className="relative">
+                  <div
+                    className={`flex size-11 items-center justify-center rounded-full ${userInfo ? avatarColor : "bg-gray-300"} font-bold text-white`}
+                  >
+                    {userInfo?.fullName ? (
+                      (() => {
+                        const parts = userInfo.fullName.trim().split(" ");
+                        const firstInitial = parts[0]?.[0] || "";
+                        const lastInitial =
+                          parts.length > 1 ? parts[parts.length - 1][0] : "";
+                        return (firstInitial + lastInitial).toUpperCase();
+                      })()
+                    ) : (
+                      <span className="inline-block size-11 animate-pulse rounded-full bg-gray-300"></span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-gray-800">
+                    {userInfo?.fullName ? (
+                      userInfo.fullName
+                    ) : (
+                      <span className="inline-block h-5 w-32 animate-pulse rounded bg-gray-200"></span>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {userInfo?.email ? (
+                      userInfo.email
+                    ) : (
+                      <span className="inline-block h-4 w-40 animate-pulse rounded bg-gray-200"></span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+              <form className="rounded-b-md" onSubmit={handleProfileSubmit}>
+                <div className="mb-4 space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="relative w-full">
+                      <div className="relative">
+                        <span className="block text-[12px] font-semibold text-gray-700">
+                          FIRST NAME
+                        </span>
+                        <input
+                          type="text"
+                          className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                          name="firstName"
+                          placeholder="Enter"
+                          value={profileFormData.firstName}
+                          onChange={handleProfileChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="relative w-full">
+                      <div className="relative">
+                        <span className="block text-[12px] font-semibold text-gray-700">
+                          LAST NAME
+                        </span>
+                        <input
+                          className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                          type="text"
+                          name="lastName"
+                          placeholder="Enter"
+                          value={profileFormData.lastName}
+                          onChange={handleProfileChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="relative w-full">
+                      <div className="relative">
+                        <span className="block text-[12px] font-semibold text-gray-700">
+                          EMAIL ADDRESS{" "}
+                        </span>
+                        <input
+                          className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                          type="email"
+                          name="email"
+                          placeholder="Enter"
+                          value={profileFormData.email}
+                          onChange={handleProfileChange}
+                          required
+                        />
+
+                        <div className="mt-1 text-start text-[11px] text-gray-400">
+                          Your primary email address. It may be used for
+                          account-related communications.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+                  <div>
+                    <div
+                      onClick={handleOpenChangePassword}
+                      className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-1 hover:bg-gray-100"
+                    >
+                      <h3 className="text-[14px] font-medium text-gray-700">
+                        Change Password
+                      </h3>
+                      <button
+                        type="button"
+                        className="flex items-center rounded-lg p-1 text-gray-700"
+                      >
+                        <i className="bx bx-chevron-right cursor-pointer text-[24px] hover:text-gray-500 active:scale-95"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="-mt-1 mb-2 h-[0.5px] bg-[rgb(200,200,200)]" />
+                {profileError && (
+                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                    {profileError}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={isProfileSubmitting}
+                  className={`mt-2 h-9 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isProfileSubmitting ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                >
+                  {isProfileSubmitting ? (
+                    <div className="flex items-center justify-center">
+                      <span className="loader-white"></span>
+                    </div>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </>
       )}
 
-      <ProfileModalsHost profile={profile} showToast={showToast} />
+      {showChangePassword && (
+        <>
+          <div className="outfit-400 lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+            <div
+              ref={changePasswordModalRef}
+              className="animate-fade-in-up edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-[480px] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-xl"
+            >
+              {/* X Button (top-right corner) */}
+              <button
+                onClick={handleCloseChangePassword}
+                className="absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition duration-100 hover:bg-gray-100 hover:text-gray-700"
+              >
+                <i className="bx bx-x text-3xl"></i>
+              </button>
+
+              {/* Header */}
+              <div className="flex flex-col gap-1 pr-10">
+                <h2 className="text-[18px] font-bold text-gray-800">
+                  Change Password
+                </h2>
+                <div className="text-[14px] font-normal text-gray-400">
+                  For your account’s safety, we recommend changing your password
+                  to prevent unauthorized access.
+                </div>
+              </div>
+
+              <form className="" onSubmit={handleSubmit}>
+                <div className="space-y-5">
+                  {/* Current Password */}
+                  <div>
+                    <label className="mt-6 block text-[12px] font-semibold text-gray-200">
+                      <span className="text-gray-700">CURRENT PASSWORD</span>
+                      <span className="ml-1 text-orange-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={passwordVisible ? "text" : "password"}
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
+                        className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 pr-12 text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPasswordVisible(!passwordVisible)}
+                        className="absolute top-1/2 right-3 mt-[2px] flex h-full -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+                      >
+                        <i
+                          className={`bx ${passwordVisible ? "bx-eye-alt" : "bx-eye-slash"} text-[24px] leading-none`}
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+                  {/* New Password */}
+                  <div>
+                    <label className="mt-6 block text-[12px] font-semibold text-gray-200">
+                      <span className="text-gray-700">NEW PASSWORD</span>
+                      <span className="ml-1 text-orange-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={newPasswordVisible ? "text" : "password"}
+                        name="new_password"
+                        value={formData.new_password}
+                        onChange={handleChange}
+                        required
+                        className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 pr-12 text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setNewPasswordVisible(!newPasswordVisible)
+                        }
+                        className="absolute top-1/2 right-3 mt-[2px] flex h-full -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+                      >
+                        <i
+                          className={`bx ${newPasswordVisible ? "bx-eye-alt" : "bx-eye-slash"} text-[24px] leading-none`}
+                        ></i>
+                      </button>
+                    </div>
+                    <div className="mt-1 text-[11px] text-gray-400">
+                      Password must contain at least 8 characters{" "}
+                    </div>
+                  </div>
+                  {/* Confirm New Password */}
+                  <div>
+                    <label className="mt-6 block text-[12px] font-semibold text-gray-200">
+                      <span className="text-gray-700">
+                        CONFIRM NEW PASSWORD
+                      </span>
+                      <span className="ml-1 text-orange-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={confirmPasswordVisible ? "text" : "password"}
+                        name="new_password_confirmation"
+                        value={formData.new_password_confirmation}
+                        onChange={handleChange}
+                        required
+                        className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 pr-12 text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setConfirmPasswordVisible(!confirmPasswordVisible)
+                        }
+                        className="absolute top-1/2 right-3 mt-[2px] flex h-full -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+                      >
+                        <i
+                          className={`bx ${confirmPasswordVisible ? "bx-eye-alt" : "bx-eye-slash"} text-[24px] leading-none`}
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {error && (
+                  <div className="mt-4 rounded-md bg-red-50 p-2 text-center text-[12px] text-red-500">
+                    {error}
+                  </div>
+                )}
+                {/* Action Buttons */}
+                <div className="mt-8 flex items-end justify-end gap-2">
+                  <button
+                    type="submit"
+                    disabled={isChangePasswordSubmitting}
+                    className={`h-9 cursor-pointer rounded-lg px-5 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isChangePasswordSubmitting ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                  >
+                    {isChangePasswordSubmitting ? (
+                      <div className="flex items-center justify-center">
+                        <span className="loader-white"></span>
+                      </div>
+                    ) : (
+                      "Apply"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
@@ -302,6 +1042,84 @@ const AdminHeader = ({ title, className = "" }) => {
           </div>
         </div>
       )}
+
+
+      {showAnnouncementModal && (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl mx-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[16px] font-bold text-gray-800">Create Announcement</h2>
+            <button onClick={() => { setShowAnnouncementModal(false); setAnnouncementError(""); setAnnouncementForm({ title: "", message: "" }); }}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100">
+              <i className="bx bx-x text-[22px]" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">Title</label>
+              <input
+                type="text"
+                value={announcementForm.title}
+                onChange={(e) => setAnnouncementForm(p => ({ ...p, title: e.target.value }))}
+                placeholder="Announcement title..."
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">Message</label>
+              <textarea
+                rows={4}
+                value={announcementForm.message}
+                onChange={(e) => setAnnouncementForm(p => ({ ...p, message: e.target.value }))}
+                placeholder="Write your announcement..."
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none resize-none"
+              />
+            </div>
+            {announcementError && <p className="text-[12px] text-red-500">{announcementError}</p>}
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={() => { setShowAnnouncementModal(false); setAnnouncementError(""); setAnnouncementForm({ title: "", message: "" }); }}
+              className="px-4 py-2 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-600 hover:bg-gray-50">
+              Cancel
+            </button>
+            <button
+              disabled={announcementSubmitting}
+              onClick={async () => {
+                if (!announcementForm.title.trim() || !announcementForm.message.trim()) {
+                  setAnnouncementError("Title and message are required.");
+                  return;
+                }
+                setAnnouncementSubmitting(true);
+                setAnnouncementError("");
+                try {
+                  const token = sessionStorage.getItem("token");
+                  const res = await fetch(`${apiUrl}/announcements`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify(announcementForm),
+                  });
+                  if (res.ok) {
+                    showToast("Announcement sent!", "success");
+                    setShowAnnouncementModal(false);
+                    setAnnouncementForm({ title: "", message: "" });
+                  } else {
+                    const d = await res.json();
+                    setAnnouncementError(d.message || "Failed to send announcement.");
+                  }
+                } catch {
+                  setAnnouncementError("Something went wrong. Please try again.");
+                } finally {
+                  setAnnouncementSubmitting(false);
+                }
+              }}
+              className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-[13px] font-bold text-white disabled:opacity-50">
+              {announcementSubmitting ? "Sending..." : "Send Announcement"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
       <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>

@@ -135,19 +135,52 @@ docker-data
 
 # docker compose
 docker-compose.yml
-Questions for Testing/Sample Questions.txt
-Questions for Testing/EE SAMPLE QUESTIONS.txt
-Questions for Testing/CPE SAMPLE QUESTIONS.txt
-Questions for Testing/CE SAMPLE QUESITONS.txt
-Questions for Testing/TEST ACCOUNTS.txt
 
-TESTING ENVIRONMENT RESULTS/BugRootCauseAnalyis/ProgramChair/ProgramChairBugRootCauseAnalysis.docx
+# AI model files (too large for GitHub)
+*.gguf
+*.bin
 
-# Ignore test environment result folders
-TestEnvironmentResults/BugRootCauseAnalysis
+# Local planning artifacts
+.kilo/
 
-# Local Claude Code config
-.claude/
+# Python cache files
+__pycache__/
+*.pyc
 
-# Packaged dependency archive (build artifact)
-node_modules.tar.gz
+# Android/IDE generated files
+**/.gradle/
+**/build/reports/
+FrontendMobile - Deployment/android/app/.project
+FrontendMobile - Deployment/android/app/.settings/
+
+# Local Android native dependency (kept out of repo)
+FrontendMobile - Deployment/android/app/src/main/cpp/llama/
+.opencode/package-lock.json
+.qwen/settings.json
+.qwen/settings.json.orig
+Backend - Deployment/.qwen/settings.json
+Backend - Deployment/.qwen/settings.json.orig
+
+# CDP Temp Dirs
+.edge-cdp-temp
+.edge-cdp-temp2
+edge-home-after.png
+edge-home.png
+docker-compose.dev.yml
+backend-fixes.patch
+FrontendMobile/App.tsx.bak
+backend-full-final.patch
+.ai/mcp/mcp.json
+backup.sql
+# Local database backups/dumps
+*.sql
+.qoder/rules/StrictRule.md
+.qoder/specs/phase-3-feature-parity.md
+
+
+MDFiles/
+
+.qoder/
+.opencode/
+docker-compose-junior.yml
+Backend - Deployment/public/apk/CAPS.apk

@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Primary Brand Color - CAPS Orange */
+  --color-primary: #FE6902;
+  --color-primary-dark: #E55A00;
+  --color-primary-light: #FF8533;
+
+  /* Student theme colors */
+  --color-student-bg: #FF7A00;
+  --color-student-card: #FFFFFF;
+  --color-student-text: #1F2937;
+  --color-student-muted: #6B7280;
+  --color-student-accent: #FE6902;
+
+  /* Background colors */
+  --color-bg-light: #FFFFFF;
+  --color-bg-dark: #0A0A0A;
+  --color-bg-secondary-light: #F9FAFB;
+  --color-bg-secondary-dark: #111111;
+
+  /* Text colors */
+  --color-text-light: #111827;
+  --color-text-dark: #F9FAFB;
+  --color-text-muted-light: #6B7280;
+  --color-text-muted-dark: #9CA3AF;
+
+  /* Border colors */
+  --color-border-light: #E5E7EB;
+  --color-border-dark: #374151;
+
+  /* Status colors */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+
+  /* Avatar palette */
+  --color-avatar-1: #FE6902;
+  --color-avatar-2: #10B981;
+  --color-avatar-3: #3B82F6;
+  --color-avatar-4: #8B5CF6;
+  --color-avatar-5: #EF4444;
+  --color-avatar-6: #F59E0B;
+  --color-avatar-7: #14B8A6;
+  --color-avatar-8: #6366F1;
+}
+
+/* Dark mode support */
+.dark {
+  --color-text: #F9FAFB;
+  --color-text-secondary: #9CA3AF;
+  --color-bg: #0A0A0A;
+  --color-bg-secondary: #111111;
+  --color-bg-tertiary: #1A1A1A;
+  --color-border: #374151;
+}

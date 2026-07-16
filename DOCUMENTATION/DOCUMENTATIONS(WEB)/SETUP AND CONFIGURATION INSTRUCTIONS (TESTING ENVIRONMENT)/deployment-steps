@@ -1,0 +1,15 @@
+1. In /ubuntu/home direcoty, go to your project folder.
+
+cd <PROJECT_NAME>
+
+2. Create a new folder to clone the repo
+
+mkdir <FOLDER_NAME>
+
+3. Change directory to the newly created folder
+
+cd <FOLDER_NAME>
+
+4. Run the setup script and provide the information through the prompts.
+
+~/setup.sh

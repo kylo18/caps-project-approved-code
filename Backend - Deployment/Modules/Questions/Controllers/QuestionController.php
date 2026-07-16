@@ -156,6 +156,35 @@ class QuestionController extends Controller
         ]);
     }
 
+    // Show a single question with its choices
+    public function show($questionID)
+    {
+        $question = Question::with([
+            'subject',
+            'choices',
+            'user',
+            'status',
+            'difficulty',
+            'coverage',
+            'purpose',
+            'editor' => function($query) {
+                $query->select('userID', 'firstName', 'lastName');
+            },
+            'approver' => function($query) {
+                $query->select('userID', 'firstName', 'lastName');
+            }
+        ])->find($questionID);
+
+        if (!$question) {
+            return response()->json(['message' => 'Question not found.'], 404);
+        }
+
+        return response()->json([
+            'message' => 'Question retrieved successfully.',
+            'data' => $this->formatQuestion($question)
+        ]);
+    }
+
     // List all questions for a subject, remove those without choices
     public function indexQuestions($subjectID)
     {
@@ -212,15 +241,25 @@ class QuestionController extends Controller
             });
         }
 
+        $perPage = min((int) request()->input('limit', 20), 50);
+        $page = max((int) request()->input('page', 1), 1);
+        $total = (clone $query)->count();
+
         $questions = $query->orderBy('created_at', 'desc')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
             ->get()
             ->map(fn($q) => $this->formatQuestion($q));
 
         return response()->json([
             'message' => 'Questions retrieved successfully.',
             'subject' => $subject->subjectName,
-            'total_questions' => $questions->count(),
+            'questions' => $questions,
             'data' => $questions,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'total_pages' => ceil($total / $perPage),
             'last_updated' => $questions->max('updated_at')
         ]);
     }
@@ -251,96 +290,46 @@ class QuestionController extends Controller
         return response()->json(['message' => 'Question deleted successfully.']);
     }
 
-    /**
-     * Retrieve all questions created by the authenticated user for a specific subject.
-     * 
-     * @param int $subjectID
-     * @return \Illuminate\Http\JsonResponse
-     */
+    // Retrieve all questions created by the current user for a given subject
     public function mySubjectQuestions($subjectID)
     {
-        try {
-            $user = Auth::user();
+        $user = Auth::user();
 
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized. Please log in to view your questions.',
-                ], 401);
-            }
-
-            // Validate subjectID is numeric
-            if (!is_numeric($subjectID)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid subject ID provided.',
-                ], 422);
-            }
-
-            // Find the subject
-            $subject = Subject::find($subjectID);
-            
-            if (!$subject) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Subject not found.',
-                ], 404);
-            }
-
-            // Retrieve questions created by the current user for this subject
-            $questions = Question::with([
-                    'subject',
-                    'choices',
-                    'status',
-                    'difficulty',
-                    'coverage',
-                    'purpose',
-                    'editor' => function($query) {
-                        $query->select('userID', 'firstName', 'lastName');
-                    },
-                    'approver' => function($query) {
-                        $query->select('userID', 'firstName', 'lastName');
-                    }
-                ])
-                ->where('subjectID', $subjectID)
-                ->where('userID', $user->userID)
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($question) {
-                    return $this->formatQuestion($question);
-                });
-
+        $subject = Subject::find($subjectID);
+        if (!$subject) {
             return response()->json([
-                'success' => true,
-                'message' => 'Your questions for this subject retrieved successfully.',
-                'subject' => [
-                    'subjectID' => $subject->subjectID,
-                    'subjectCode' => $subject->subjectCode,
-                    'subjectName' => $subject->subjectName,
-                ],
-                'total_questions' => $questions->count(),
-                'data' => $questions,
-            ], 200);
-
-        } catch (\Throwable $e) {
-            Log::error('Error retrieving user questions for subject', [
-                'user_id' => optional(Auth::user())->userID,
-                'subject_id' => $subjectID,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while retrieving your questions for this subject.',
-            ], 500);
+                'message' => 'Subject not found.'
+            ], 404);
         }
+
+        $perPage = min((int) request()->input('limit', 20), 50);
+        $page = max((int) request()->input('page', 1), 1);
+
+        $query = Question::with(['subject', 'choices', 'status', 'difficulty', 'coverage', 'purpose'])
+            ->where('subjectID', $subjectID)
+            ->where('userID', $user->userID);
+
+        $total = (clone $query)->count();
+
+        $questions = $query->orderBy('created_at', 'desc')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get()
+            ->map(fn($q) => $this->formatQuestion($q));
+
+        return response()->json([
+            'message' => 'Your questions for this subject retrieved successfully!',
+            'subject' => $subject->subjectName,
+            'data'    => $questions,
+            'total'   => $total,
+            'page'    => $page,
+            'per_page' => $perPage,
+            'total_pages' => ceil($total / $perPage),
+        ], 200);
     }
 
-    // Approve a question if it's pending and not edited by the current user
-    public function updateStatus($questionID)
+    // Update question status (approve, reject, or revert)
+    public function updateStatus(Request $request, $questionID)
     {
         try {
             $this->authorizeRoles([3, 4, 5]);
@@ -386,155 +375,33 @@ class QuestionController extends Controller
                 'approvedBy' => Auth::id(),
             ]);
 
-            return response()->json([
-                'message' => 'Question approved.',
-                'question' => $this->formatQuestion($question->fresh([
-                    'subject',
-                    'choices',
-                    'user',
-                    'status',
-                    'difficulty',
-                    'coverage',
-                    'purpose',
-                    'editor',
-                    'approver',
-                ])),
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Question approval error', [
-                'question_id' => $questionID,
-                'user_id' => optional(Auth::user())->userID,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'message' => 'An error occurred while approving the question.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
-            ], 500);
+        $requestedStatus = $request->input('status', 'approved');
+        $targetStatus = Status::where('name', $requestedStatus)->first();
+        if (!$targetStatus) {
+            return response()->json(['message' => "Invalid status '{$requestedStatus}'."], 400);
         }
-    }
 
-    /**
-     * Approve multiple pending questions in a single request.
-     * Applies the same approval rules as updateStatus for each question.
-     */
-    public function approveMultipleQuestions(Request $request)
-    {
-        try {
-            $this->authorizeRoles([3, 4, 5]);
-
-            $validated = $request->validate([
-                'questionIDs' => 'required|array|min:1',
-                'questionIDs.*' => 'integer|distinct|exists:questions,questionID',
-            ]);
-
-            $approverId = Auth::id();
-            $statusIds = $this->resolveApprovalStatusIds();
-
-            if (!$statusIds['pending'] || !$statusIds['approved']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Required question statuses are not configured.',
-                ], 500);
+        // Allow transition to approved regardless of current status
+        if ($requestedStatus === 'approved') {
+            // Check if the current user is the creator and the question hasn't been edited yet
+            if (Auth::id() === $question->userID && !$question->editedBy) {
+                return response()->json(['message' => 'You cannot approve your own question.'], 403);
             }
-
-            $questions = Question::with(['status'])
-                ->whereIn('questionID', $validated['questionIDs'])
-                ->get()
-                ->keyBy('questionID');
-
-            $approvableIds = [];
-            $skipped = [];
-
-            foreach ($validated['questionIDs'] as $questionID) {
-                $question = $questions->get($questionID);
-
-                if (!$question) {
-                    $skipped[] = [
-                        'questionID' => $questionID,
-                        'reason' => 'Question not found.',
-                    ];
-                    continue;
-                }
-
-                $failureReason = $this->getQuestionApprovalFailureReason(
-                    $question,
-                    $approverId,
-                    $statusIds['pending']
-                );
-
-                if ($failureReason) {
-                    $skipped[] = [
-                        'questionID' => $questionID,
-                        'reason' => $failureReason,
-                        'current_status' => optional($question->status)->name,
-                    ];
-                    continue;
-                }
-
-                $approvableIds[] = $questionID;
+            if (Auth::id() === $question->editedBy) {
+                return response()->json(['message' => 'You cannot approve a question you last edited.'], 403);
             }
-
-            $approvedQuestions = collect();
-
-            if (!empty($approvableIds)) {
-                DB::transaction(function () use ($approvableIds, $statusIds, $approverId) {
-                    Question::whereIn('questionID', $approvableIds)->update([
-                        'status_id' => $statusIds['approved'],
-                        'approvedBy' => $approverId,
-                        'updated_at' => now(),
-                    ]);
-                });
-
-                $approvedQuestions = Question::with([
-                    'subject',
-                    'choices',
-                    'user',
-                    'status',
-                    'difficulty',
-                    'coverage',
-                    'purpose',
-                    'editor' => fn ($query) => $query->select('userID', 'firstName', 'lastName'),
-                    'approver' => fn ($query) => $query->select('userID', 'firstName', 'lastName'),
-                ])
-                    ->whereIn('questionID', $approvableIds)
-                    ->get()
-                    ->map(fn ($question) => $this->formatQuestion($question))
-                    ->values();
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Bulk question approval completed.',
-                'summary' => [
-                    'requested' => count($validated['questionIDs']),
-                    'approved' => count($approvableIds),
-                    'skipped' => count($skipped),
-                ],
-                'approved_questions' => $approvedQuestions,
-                'skipped_questions' => $skipped,
-            ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Throwable $e) {
-            Log::error('Bulk question approval error', [
-                'user_id' => optional(Auth::user())->userID,
-                'question_ids' => $request->input('questionIDs'),
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while approving the selected questions.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
-            ], 500);
+            $question->approvedBy = Auth::id();
         }
+
+        $question->status_id = $targetStatus->id;
+        $question->save();
+
+        $statusName = $targetStatus->name;
+
+        return response()->json([
+            'message' => "Question {$statusName}.",
+            'question' => $this->formatQuestion($question)
+        ]);
     }
 
     // Show questions by subject and filter them by the program of the logged-in Program Chair
@@ -912,8 +779,7 @@ class QuestionController extends Controller
     // Return all questions without choices
     public function questionCount()
     {
-        $user = Auth::user();
-        $query = Question::with([
+        $questions = Question::with([
             'subject',
             'user.program', // eager load user's program
             'user.role',    // eager load user's role
@@ -927,24 +793,7 @@ class QuestionController extends Controller
             'approver' => function($query) {
                 $query->select('userID', 'firstName', 'lastName');
             }
-        ]);
-
-        // Role-based filtering
-        if ($user->roleID == 5) { // Associate Dean
-            $query->whereHas('user', function($q) use ($user) {
-                $q->where('campusID', $user->campusID);
-            });
-        } elseif ($user->roleID == 3) { // Program Chair
-            $query->whereHas('user', function($q) use ($user) {
-                $q->where('campusID', $user->campusID)
-                  ->where('programID', $user->programID);
-            });
-        } elseif ($user->roleID == 2) { // Faculty
-            $query->where('userID', $user->userID);
-        }
-        // Dean (roleID == 4) sees all questions (no filter)
-
-        $questions = $query->get();
+        ])->get();
 
         // Format questions but skip choices
         $formatted = $questions->map(function($q) {
@@ -976,7 +825,7 @@ class QuestionController extends Controller
             'data' => $formatted
         ]);
     }
-
+    
     // ============ PRIVATE HELPERS ============
 
     private function resolveApprovalStatusIds(): array
@@ -1071,54 +920,25 @@ class QuestionController extends Controller
         return $question;
     }
 
-    /**
-     * Generate a full URL for images stored in the public disk.
-     * This method is environment-aware and uses APP_URL from .env file.
-     * Works in local, staging, and production environments.
-     * 
-     * @param string|null $path The storage path (with or without /storage/ prefix)
-     * @return string|null Full URL or null if path is invalid
-     */
+    // Generate a full URL for images stored in the public disk
     private function generateUrl($path)
     {
         if (!$path) {
             return null;
         }
 
-        // If it's already a full URL, return as is (works for external URLs)
+        // If it's already a full URL, return as is
         if (Str::startsWith($path, ['http://', 'https://'])) {
             return $path;
         }
 
-        // Remove /storage/ prefix if present (path might be stored with or without it)
-        $cleanPath = $path;
-        if (Str::startsWith($path, '/storage/')) {
-            $cleanPath = Str::after($path, '/storage/');
-        } elseif (Str::startsWith($path, 'storage/')) {
-            $cleanPath = Str::after($path, 'storage/');
-        }
-
-        // Check if the file exists in storage using the clean path
-        $fileExists = Storage::disk('public')->exists($cleanPath);
-        
-        if (!$fileExists) {
-            // If file doesn't exist, check if it's a valid storage path format
-            // If it looks like a storage path, generate the URL anyway (file might exist but check failed)
-            if (Str::contains($path, 'question_images/') || Str::contains($path, 'choices/')) {
-                // Generate the asset URL using Laravel's asset() helper
-                // This automatically uses APP_URL from .env file, making it environment-aware
-                return asset('storage/' . $cleanPath);
-            }
-            // If it doesn't look like a storage path, return null
+        // Check if the file exists in storage
+        if (!Storage::disk('public')->exists($path)) {
             return null;
         }
 
         // Generate the full URL for the existing file
-        // asset() helper uses APP_URL from .env, so it's dynamic and environment-aware
-        // Examples:
-        // - Local: http://localhost/storage/question_images/file.jpg
-        // - Production: https://yourdomain.com/storage/question_images/file.jpg
-        return asset('storage/' . $cleanPath);
+        return asset('storage/' . $path);
     }
 }
 

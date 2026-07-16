@@ -603,7 +603,7 @@ const Class = () => {
                     setShowJoinForm(true);
                     resetJoinForm();
                   }}
-                  className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:text-[14px]"
+                  className="outfit-500 -mb-2 cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:inline-flex md:text-[14px]"
                 >
                   <i className="bxx bx-plus text-[20px]"></i>
                 </button>
@@ -792,10 +792,10 @@ const Class = () => {
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="lucide lucide-square-arrow-right-exit-icon lucide-square-arrow-right-exit"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="lucide lucide-square-arrow-right-exit-icon lucide-square-arrow-right-exit"
                               >
                                 <path d="M10 12h11" />
                                 <path d="m17 16 4-4-4-4" />

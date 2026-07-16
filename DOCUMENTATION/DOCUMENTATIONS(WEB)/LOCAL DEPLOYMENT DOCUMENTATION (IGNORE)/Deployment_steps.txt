@@ -1,0 +1,142 @@
+step 1: go to CAPS repository and copy url
+step 2: open GitHub desktop and clone repository, make sure you remember the file directory
+step 3: after cloning go to Jdev/Environment/Test branch and fetch origin
+step 4: after fetching go to file directory and make a file named "docker-compose.yml" and paste this(make sure to save):
+
+version: '3.8'
+
+networks:
+  caps_network:
+    driver: bridge
+
+services:
+  backend:
+    build:
+      context: "./Backend - Deployment" 
+      dockerfile: Dockerfile
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    container_name: backend
+    networks:
+      - caps_network
+    ports:
+      - "8000:8000"
+    volumes:
+      # - ./caps-backend:/var/www/html   # <-- still commented
+      - ./docker-data/backend_pictures:/var/www/html/storage/app/public
+    depends_on:
+      - mysql
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: laravel
+      DB_USERNAME: caps_user
+      DB_PASSWORD: password 
+
+  frontend:
+    build:
+      context: "./Frontend - Deployment"
+      dockerfile: Dockerfile
+    container_name: frontend
+    networks:
+      - caps_network
+    ports:
+      - "80:80"
+    environment:
+      #this should be the same as the backend's .env file
+      - VITE_API_BASE_URL=http://localhost:8000/api
+    depends_on:
+      - backend
+
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    restart: always
+    networks:
+      - caps_network
+    ports:
+      - "4406:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: caps_user
+      MYSQL_PASSWORD: password 
+    volumes:
+      - ./docker-data/mysql_data:/var/lib/mysql
+
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: root 
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - caps_network
+
+#volumes:
+  # ./docker-data/mysql_data:/var/lib/mysql:
+  
+
+
+step 5: go to frontend -Deployment make a file called ".env" and paste this(make sure to save):
+
+# Frontend base config
+VITE_API_BASE_URL=http://localhost:8000/api
+
+
+step 6: go to backend - Deployment and make file called ".env" and paste this(make sure to save):
+
+APP_NAME=CAPS 
+APP_ENV=local
+APP_FORCE_HTTPS=true # Force app to be served in https
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://localhost:8000/api
+FRONTEND_URL= # added this line to make reset password through email work. Change this with the actual production url
+APP_VERSION=1.1.0
+
+LOG_CHANNEL=stack
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=caps_user
+DB_PASSWORD=password
+
+BROADCAST_DRIVER=log
+CACHE_DRIVER=file
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=database 
+SESSION_LIFETIME=120
+
+FILESYSTEM_DISK=local
+
+# If you're using Laravel Sanctum, set this for CORS
+SANCTUM_STATEFUL_DOMAINS=caps-test2.coeofjrmsu.com
+
+# Optional: If sending emails
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com # modified this line to make reset password through email work
+MAIL_PORT=587 # modified this line to make reset password through email work
+MAIL_USERNAME= # modified this line to make reset password through email work. 
+MAIL_PASSWORD=miafcfzompsbabam # modified this line to make reset password through email work
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS= # modified this line to make reset password through email work.
+MAIL_FROM_NAME="${APP_NAME}"
+
+
+step 7: open docker and command prompt then type "docker compose up -d --build"
+step 8: go to backend container using "docker exec -it backend bash
+step 9: then make the table "php artisan migrate"
+step 10: put data on table "php artisan db:seed"
+step 11: go to web browser of you choice and type "localhost"

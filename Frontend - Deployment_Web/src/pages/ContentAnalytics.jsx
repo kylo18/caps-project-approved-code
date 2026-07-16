@@ -1,0 +1,710 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+
+// new added: moved TABS config outside component to avoid re-creation on every render
+const TABS = [
+  {
+  id:    "weakest",
+  label: "Weakest Questions",
+  icon:  "🧠",
+  accent: "#DC2626",
+  soft:   "#FEF2F2",
+  softText: "#991B1B",
+  unit:  "wrong",
+  hint:  "Questions you get wrong most often",
+},
+  {
+    id:    "attempted",
+    label: "Most Attempted",
+    icon:  "🎯",
+    accent: "#3B8BD4",
+    soft:   "#EBF4FD",
+    softText: "#1A5FA0",
+    unit:  "attempts",
+    hint:  "Questions you practiced the most",
+  },
+  {
+    id:    "errors",
+    label: "Error Rate",
+    icon:  "⚠️",
+    accent: "#E55012",
+    soft:   "#FCEBEB",
+    softText: "#B03A0E",
+    unit:  "error %",
+    hint:  "Questions you get wrong most often",
+  },
+  {
+    id:    "skipped",
+    label: "Skipped",
+    icon:  "⏭️",
+    accent: "#7F77DD",
+    soft:   "#F0EFFD",
+    softText: "#5249B0",
+    unit:  "skips",
+    hint:  "Topics you skipped the most",
+  },
+];
+
+const RANK_COLORS = ["#FF6014", "#9B9790", "#C8955A"];
+
+const ContentAnalytics = () => {
+  const navigate   = useNavigate();
+  const apiUrl     = import.meta.env.VITE_API_BASE_URL;
+  const [loading, setLoading]   = useState(true);
+  const [data,    setData]      = useState(null);
+  const [mistakesData, setMistakesData] = useState([]);
+  const [tab, setTab] = useState("weakest");
+
+  // new added: added mobile detection state for responsive layout
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  const [refreshing,  setRefreshing]  = useState(false);
+  const [error,       setError]       = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [page, setPage] = useState({});
+  const [skippedModal, setSkippedModal] = useState(null);
+  const [skippedQuestions, setSkippedQuestions] = useState([]);
+  const [skippedLoading, setSkippedLoading] = useState(false);
+  const apiUrlRef = useRef(apiUrl);
+  useEffect(() => { apiUrlRef.current = apiUrl; }, [apiUrl]);
+
+  useEffect(() => {
+    // new added: renamed resize handler to onResize for consistency
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const fetchData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    else         setRefreshing(true);
+    setError(null);
+    let cancelled = false;
+    try {
+      const token = sessionStorage.getItem("token");
+      
+      const res = await fetch(`${apiUrlRef.current}/practice-exam/content-analytics`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const json = await res.json();
+
+      console.log("API response:", json);
+      console.log("mostSkipped sample:", json.mostSkipped?.[0]);
+      
+
+      const mistakesRes = await fetch(`${apiUrlRef.current}/student/analytics/frequently-mistaken`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const mistakesJson = await mistakesRes.json();
+      if (!cancelled) setMistakesData(mistakesJson.data ?? []);
+
+      if (!cancelled) {
+        setData(json);
+        setLastUpdated(new Date());
+      }
+
+    } catch (e) {
+      if (!cancelled) setError(e.message || "Failed to load data");
+    } finally {
+      if (!cancelled) { setLoading(false); setRefreshing(false); }
+    }
+    return () => { cancelled = true; };
+  }, []);
+
+    useEffect(() => {
+      let cancel;
+      fetchData().then(c => { cancel = c; });
+      return () => cancel?.();
+    }, [fetchData]);
+
+    useEffect(() => {
+      const id = setInterval(() => fetchData({ silent: true }), 30_000);
+      return () => clearInterval(id);
+    }, [fetchData]);
+
+  // new added: replaced separate flat arrays with a unified itemsMap object;
+  // each tab now has name, value, sub (display label), and display (formatted value)
+  // data source: GET /practice-exam/content-analytics
+  //   → mostViewed, mostAttempted, highestError, mostSkipped
+  // ── Normalize data per tab ───────────────────────────────────────────────
+  const itemsMap = {
+
+    // new added: added fallback display names when API returns null/undefined
+    weakest: mistakesData.map(i => ({
+      name:    i.questionText || `Question #${i.questionID}`,
+      value:   i.wrong_count ?? 0,
+      sub:     `${i.subjectName} · ${i.wrong_count} wrong`,
+      display: String(i.wrong_count ?? 0),
+    })),
+
+    attempted: (data?.mostAttempted || []).map(i => ({
+      //name:    `Question #${i.questionId}`,
+      name:    i.questionText || `Question #${i.questionId}`, // attempted & errors
+      value:   i.count,
+      sub:     `${i.count} attempt${i.count !== 1 ? "s" : ""}`,
+      display: String(i.count),
+    })),
+    errors: (data?.highestError || []).map(i => ({
+      //name:    `Question #${i.questionId}`,
+      name:    i.questionText || `Question #${i.questionId}`,
+      value:   i.rate,
+      sub:     `${i.totalWrong} wrong / ${i.totalTries} tries`,
+      display: `${(i.rate * 100).toFixed(1)}%`,
+    })),
+    skipped: (data?.mostSkipped || []).map(i => ({
+      name:    i.name || "Unknown Topic",
+      value:   i.skipped_count,
+      sub:     `${i.skipped_count} skip${i.skipped_count !== 1 ? "s" : ""}`,
+      display: String(i.skipped_count),
+      topicId: i.topicId,
+    })),
+  };
+
+
+  // new added: extracted stat card data into a stats array with icon and color config
+  // data source: GET /practice-exam/content-analytics
+  //   → totalViews, totalAttempts, avgErrorRate, totalSkipped
+  const stats = [
+    { label: "Weak Questions", value: mistakesData.length, icon: "🧠", accent: "#DC2626", soft: "#FEF2F2" },
+    { label: "Questions Attempted", value: data?.totalAttempts ?? 0, icon: "✏️", accent: "#3B8BD4", soft: "#EBF4FD" },
+    { label: "Avg Error Rate",      value: data?.avgErrorRate != null 
+    ? `${(data.avgErrorRate <= 1 ? data.avgErrorRate * 100 : data.avgErrorRate).toFixed(1)}%` 
+    : "0%", icon: "❌", accent: "#E55012", soft: "#FCEBEB" },
+    { label: "Topics Skipped",      value: data?.totalSkipped  ?? 0, icon: "⏭️", accent: "#7F77DD", soft: "#F0EFFD" },
+  ];
+
+  // new added: added fallback to TABS[0] if tab not found; items now pulled from itemsMap
+  const current    = TABS.find(t => t.id === tab) ?? TABS[0];
+  const allItems   = itemsMap[tab] ?? [];
+  const PAGE_SIZE  = 20;
+  const currentPage = page[tab] ?? 0;
+  const totalPages  = Math.ceil(allItems.length / PAGE_SIZE);
+  const items       = allItems.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const maxVal      = allItems.length ? Math.max(...allItems.map(i => i.value ?? 0)) : 1;
+
+  const goNext = () => setPage(p => ({ ...p, [tab]: Math.min((p[tab] ?? 0) + 1, totalPages - 1) }));
+  const goPrev = () => setPage(p => ({ ...p, [tab]: Math.max((p[tab] ?? 0) - 1, 0) }));
+
+  const handleTabChange = (id) => {
+    setTab(id);
+    setPage(p => ({ ...p, [id]: 0 }));
+  };
+
+  const openSkippedDetail = async (subjectId, subjectName) => {
+    setSkippedModal({ subjectId, subjectName });
+    setSkippedLoading(true);
+    setSkippedQuestions([]);
+    try {
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(`${apiUrl}/practice-exam/skipped-questions/${subjectId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      setSkippedQuestions(json.data ?? []);
+    } catch (e) {
+      console.error("Failed to load skipped questions:", e);
+    } finally {
+      setSkippedLoading(false);
+    }
+  };
+
+  return (
+    <div style={{
+      background:  "#F5F3EF",
+      minHeight: "auto",
+      fontFamily:  "'Segoe UI', system-ui, sans-serif",
+      overflowX:   "hidden",  // new added: prevents horizontal overflow on mobile
+      maxWidth:    "100vw", // new added: ensures content doesn't exceed viewport width
+      overflow:      "hidden",
+      paddingBottom: 0,
+      }}>
+
+      
+      
+      {/* // new added: made top bar sticky (position: sticky, top: 0, zIndex: 10)
+          // new added: updated padding to handle mobile top notch (60px top on mobile)
+          // new added: changed subtitle from long description to "Your personal learning data"
+          // new added: added flex: 1 and minWidth: 0 to title container to prevent overflow
+      */}
+      {/* ── TOP BAR ── */}
+      <div style={{
+        background:   "#fff",
+        borderBottom: "1px solid #EAE8E2",
+        padding: isMobile ? "16px 16px 14px" : "16px 28px",
+        display:      "flex",
+        alignItems:   "center",
+        gap:          14,
+        position:     "sticky",
+        top:          0,
+        zIndex:       10,
+        }}>
+
+        <div style={{ flex: 1, minWidth: 0}}>
+
+          {/*new added: slightly reduced font sizes in top bar for tighter layout*/}
+          <div style={{ fontSize: 17, fontWeight: 700, color: "#1A1814" }}>My Content</div>
+          <div style={{ fontSize: 11, color: "#9B9790" }}>Your personal learning data</div>
+        </div>
+
+
+        <button
+          onClick={() => fetchData({ silent: true })}
+          disabled={loading || refreshing}
+          style={{
+            background: "none", border: "1px solid #EAE8E2", borderRadius: 20,
+            padding: "4px 10px", cursor: "pointer", display: "flex",
+            alignItems: "center", gap: 5, fontSize: 11, color: "#9B9790",
+            opacity: loading || refreshing ? 0.5 : 1,
+            fontFamily: "inherit",
+          }}
+        >
+          <span style={{ display:"inline-block", animation: refreshing ? "spin 0.8s linear infinite" : "none" }}>
+            🔄
+          </span>
+          {refreshing ? "Updating…" : "Refresh"}
+        </button>
+        
+        {/* new added: added last updated date badge in top bar, shown only when data is loaded*/}
+        {/* Last updated badge */}
+        {!loading && lastUpdated && (
+          <div style={{
+            fontSize: 10, color: "#9B9790",
+            background: "#fff",
+            border: "1px solid #EAE8E2",
+            borderRadius: 20,
+            padding: "3px 10px",
+            whiteSpace: "nowrap",
+          }}>
+            Updated {lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div style={{
+          background: "#FCEBEB", borderBottom: "1px solid #F7C1C1",
+          padding: "10px 20px", display: "flex",
+          alignItems: "center", justifyContent: "space-between",
+          fontSize: 13, color: "#B03A0E",
+        }}>
+          <span>⚠️ {error}</span>
+          <button
+            onClick={() => fetchData()}
+            style={{
+              background: "#E55012", color: "#fff", border: "none",
+              borderRadius: 8, padding: "4px 12px",
+              fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      <div style={{ padding: isMobile ? "16px 16px 100px" : "24px 28px 24px", background: "#fff" }}>
+
+        {/* ── STAT CARDS ── */}
+        <div style={{
+          display:             "grid",
+          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)",
+          gap:                 12,
+          marginBottom:        20,
+        }}>
+
+          {/* // new added: replaced inline stat card markup with reusable StatCard component
+              // new added: StatCard now includes an icon, loading skeleton, and accent color strip
+          */}
+          {stats.map(s => (
+            <StatCard key={s.label} s={s} loading={loading}/>
+          ))}
+        </div>
+
+        {/* ── TAB ROW ── */}
+        <div style={{
+          display:             "grid",
+          gridTemplateColumns: `repeat(${TABS.length},1fr)`,
+          gap:                 8,
+          marginBottom:        16,
+        }}>
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => handleTabChange(t.id)}
+              style={{
+                padding:       "12px 6px",
+                borderRadius:  12,
+                border:        tab === t.id ? `1.5px solid ${t.accent}40` : "1.5px solid #EAE8E2",
+                background:    tab === t.id ? t.soft : "#fff",
+                cursor:        "pointer",
+                display:       "flex",
+                flexDirection: "column",
+                alignItems:    "center",
+                gap:           5,
+                transition:    "all 0.15s",
+                fontFamily:    "inherit",
+                boxShadow: tab === t.id ? `0 2px 8px ${t.accent}25` : "0 1px 3px rgba(0,0,0,0.05)",
+              }}
+            >
+              <span style={{ fontSize: isMobile ? 18 : 20, lineHeight: 1 }}>{t.icon}</span>
+              <span style={{
+                fontSize:   isMobile ? 10 : 11,
+                fontWeight: 600,
+                color:      tab === t.id ? t.accent : "#9B9790",
+                textAlign:  "center",
+                lineHeight: 1.3,
+              }}>
+                {t.label}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* ── LIST CARD ── */}
+        <div style={{
+          background:   "#fff",
+          borderRadius: 16,
+          border:       "1px solid #EAE8E2",
+          overflow:     "hidden",
+          marginBottom: 0,
+          boxShadow:    "0 1px 4px rgba(0,0,0,0.06)",
+        }}>
+          {/* Card header */}
+          <div style={{
+            padding:      "14px 20px",
+            borderBottom: "1px solid #F0EDE8",
+            display:      "flex",
+            alignItems:   "center",
+            gap:          12,
+            background:   current.soft + "55",
+          }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 10,
+              background: current.soft,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 18, flexShrink: 0,
+            }}>
+              {current.icon}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1814" }}>{current.label}</div>
+              <div style={{ fontSize: 11, color: "#9B9790", marginTop: 1 }}>{current.hint}</div>
+            </div>
+            {!loading && (
+              <div style={{
+                fontSize: 11, fontWeight: 600,
+                color: current.softText,
+                background: current.soft,
+                border: `1px solid ${current.accent}30`,
+                borderRadius: 20,
+                padding: "2px 10px",
+              }}>
+                {items.length} {items.length === 1 ? "item" : "items"}
+              </div>
+            )}
+          </div>
+
+          {/* List body */}
+          <div>
+            {loading ? (
+
+              // new added: replaced inline loading skeleton with reusable SkeletonList component
+              // new added: skeleton items increased from 6 → 5 with staggered animation delay
+              <SkeletonList/>
+            ) : items.length === 0 ? (
+
+              // new added: EmptyState now accepts a label prop instead of a full message string
+              // new added: added a title "No data yet" above the sub-text
+              <EmptyState label={current.label}/>
+            ) : (
+              items.map((item, i) => {
+                const barPct = maxVal > 0 ? Math.round((item.value / maxVal) * 100) : 0;
+                const globalIndex = currentPage * PAGE_SIZE + i;
+                const rankBg = globalIndex < 3 ? RANK_COLORS[globalIndex] : "#F0EDE8";
+                const rankTx = globalIndex < 3 ? "#fff" : "#9B9790";
+
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      display:      "flex",
+                      alignItems:   "center",
+                      gap:          12,
+                      padding:      "13px 20px",
+                      borderBottom: i < items.length - 1 ? "1px solid #F8F6F3" : "none",
+                      transition:   "background 0.1s",
+                      cursor:       tab === "skipped" ? "pointer" : "default",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#FAFAF8"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    onClick={() => tab === "skipped" ? openSkippedDetail(item.topicId, item.name) : null}
+              
+                  >
+                    {/* Rank badge */}
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      background: rankBg,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 12, fontWeight: 700, color: rankTx,
+                      flexShrink: 0,
+                    }}>
+                      {globalIndex + 1}
+                    </div>
+
+                    {/* Name + bar */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 13, fontWeight: 500, color: "#1A1814",
+                        marginBottom: 6,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {item.name}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{
+                          flex: 1, height: 4,
+                          background: "#F0EDE8", borderRadius: 4, overflow: "hidden",
+                        }}>
+                          <div style={{
+                            height: "100%",
+                            width:  `${barPct}%`,
+                            background: current.accent,
+                            borderRadius: 4,
+                            transition: "width 0.7s cubic-bezier(.4,0,.2,1)",
+                          }}/>
+                        </div>
+                        <div style={{ fontSize: 10, color: "#9B9790", flexShrink: 0, minWidth: 60, textAlign: "right" }}>
+                          {item.sub}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Value pill */}
+                    <div style={{
+                      padding:    "5px 12px",
+                      borderRadius: 20,
+                      background: current.soft,
+                      fontSize:   13, fontWeight: 700,
+                      color:      current.accent,
+                      flexShrink: 0,
+                      minWidth:   44,
+                      textAlign:  "center",
+                    }}>
+                      {item.display}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          {/* Pagination bar */}
+          {allItems.length > 0 && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "10px 20px", borderTop: "1px solid #F0EDE8",
+              background: current.soft + "33",
+            }}>
+              <button
+                onClick={goPrev}
+                disabled={currentPage === 0}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px", borderRadius: 8, cursor: currentPage === 0 ? "not-allowed" : "pointer",
+                  border: "1px solid #EAE8E2", background: currentPage === 0 ? "#F5F3EF" : "#fff",
+                  fontSize: 12, fontWeight: 600, color: currentPage === 0 ? "#C4C0B8" : "#5C5955",
+                  fontFamily: "inherit",
+                }}
+              >
+                ← Prev
+              </button>
+              <span style={{ fontSize: 12, color: "#9B9790", fontWeight: 500 }}>
+                Page {currentPage + 1}
+              </span>
+              <button
+                onClick={goNext}
+                disabled={currentPage >= totalPages - 1}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px", borderRadius: 8, cursor: currentPage >= totalPages - 1 ? "not-allowed" : "pointer",
+                  border: "1px solid #EAE8E2", background: currentPage >= totalPages - 1 ? "#F5F3EF" : "#fff",
+                  fontSize: 12, fontWeight: 600, color: currentPage >= totalPages - 1 ? "#C4C0B8" : "#5C5955",
+                  fontFamily: "inherit",
+                }}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Skipped Questions Modal */}
+      {skippedModal && (
+        <div
+          onClick={() => setSkippedModal(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#fff", borderRadius: 20, width: "100%",
+              maxWidth: 560, maxHeight: "80vh", display: "flex",
+              flexDirection: "column", overflow: "hidden",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div style={{
+              padding: "16px 20px", borderBottom: "1px solid #F0EDE8",
+              display: "flex", alignItems: "center", gap: 12,
+              background: "#F0EFFD",
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10, background: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 18, flexShrink: 0,
+              }}>⏭️</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1814",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {skippedModal.subjectName}
+                </div>
+                <div style={{ fontSize: 11, color: "#9B9790" }}>Skipped questions in this subject</div>
+              </div>
+              <button
+                onClick={() => setSkippedModal(null)}
+                style={{
+                  background: "none", border: "1px solid #EAE8E2", borderRadius: 8,
+                  padding: "4px 10px", cursor: "pointer", fontSize: 12,
+                  color: "#9B9790", fontFamily: "inherit",
+                }}
+              >✕ Close</button>
+            </div>
+            <div style={{ overflowY: "auto", flex: 1, padding: "12px 20px" }}>
+              {skippedLoading ? (
+                <SkeletonList />
+              ) : skippedQuestions.length === 0 ? (
+                <EmptyState label="Skipped Questions" />
+              ) : (
+                skippedQuestions.map((q, i) => (
+                  <div key={q.questionId} style={{
+                    display: "flex", alignItems: "flex-start", gap: 12,
+                    padding: "12px 0",
+                    borderBottom: i < skippedQuestions.length - 1 ? "1px solid #F8F6F3" : "none",
+                  }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                      background: i < 3 ? RANK_COLORS[i] : "#F0EDE8",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 12, fontWeight: 700,
+                      color: i < 3 ? "#fff" : "#9B9790",
+                    }}>{i + 1}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#1A1814", lineHeight: 1.5 }}>
+                        {q.questionText}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#9B9790", marginTop: 4 }}>
+                        Skipped {q.skip_count} time{q.skip_count !== 1 ? "s" : ""}
+                      </div>
+                    </div>
+                    <div style={{
+                      padding: "4px 10px", borderRadius: 20,
+                      background: "#F0EFFD", fontSize: 12,
+                      fontWeight: 700, color: "#7F77DD", flexShrink: 0,
+                    }}>{q.skip_count}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* new added: slightly reduced pulse animation low opacity for subtler skeleton effect*/}
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+      `}</style>
+    </div>
+  );
+};
+
+/* ── Sub-components ─────────────────────────────────────────────────────── */
+
+const StatCard = ({ s, loading }) => (
+  <div style={{
+    background:   "#fff",
+    borderRadius: 14,
+    padding:      "14px 16px",
+    border:       "1px solid #EAE8E2",
+    position:     "relative",
+    overflow:     "hidden",
+    boxShadow:    "0 1px 4px rgba(0,0,0,0.06)",
+  }}>
+    <div style={{
+      position: "absolute", top: 0, left: 0, right: 0,
+      height: 3, background: s.accent,
+      borderRadius: "14px 14px 0 0",
+    }}/>
+    <div style={{
+      width: 32, height: 32, borderRadius: 8,
+      background: s.soft,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 15, marginBottom: 10,
+    }}>
+      {s.icon}
+    </div>
+    <div style={{
+      fontSize: 10, color: "#9B9790",
+      fontWeight: 600, textTransform: "uppercase",
+      letterSpacing: "0.5px", marginBottom: 4,
+    }}>
+      {s.label}
+    </div>
+    {loading ? (
+      <div style={{
+        height: 28, width: "60%", borderRadius: 6,
+        background: "#F0EDE8", animation: "pulse 1.4s infinite",
+      }}/>
+    ) : (
+      <div style={{ fontSize: 26, fontWeight: 800, color: "#1A1814", letterSpacing: -1 }}>
+        {s.value}
+      </div>
+    )}
+  </div>
+);
+
+const SkeletonList = () => (
+  <div style={{ padding: "12px 20px" }}>
+    {[...Array(5)].map((_, i) => (
+      <div key={i} style={{
+        height: 54, borderRadius: 10, background: "#F5F3EF",
+        marginBottom: 8, animation: "pulse 1.4s infinite",
+        animationDelay: `${i * 0.08}s`,
+      }}/>
+    ))}
+  </div>
+);
+
+const EmptyState = ({ label }) => (
+  <div style={{
+    padding: "48px 0",
+    display: "flex", flexDirection: "column",
+    alignItems: "center", gap: 10,
+  }}>
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+      <circle cx="22" cy="22" r="21" stroke="#EAE8E2" strokeWidth="1.5"/>
+      <path d="M14 22h16M14 16h16M14 28h9" stroke="#D4D0C8" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+    <div style={{ fontSize: 14, fontWeight: 600, color: "#5C5955" }}>No data yet</div>
+    <div style={{ fontSize: 12, color: "#9B9790", textAlign: "center", maxWidth: 220, lineHeight: 1.6 }}>
+      Start practicing to see your {label.toLowerCase()} data here.
+    </div>
+  </div>
+);
+
+export default ContentAnalytics;

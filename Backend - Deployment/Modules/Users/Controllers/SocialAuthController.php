@@ -1,0 +1,629 @@
+<?php
+
+namespace Modules\Users\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Laravel\Socialite\Facades\Socialite;
+use Modules\Users\Models\User;
+
+class SocialAuthController extends Controller
+{
+    // Starts the Google OAuth flow and remembers which frontend should receive the callback result.
+    public function redirectToGoogle(Request $request)
+    {
+        $frontendUrl = $request->query('frontend_url');
+
+        try {
+            if (!config('services.google.client_id')) {
+                throw new \Exception('Google Client ID is missing. Check your .env file and configuration cache.');
+            }
+
+            Log::info('Google OAuth redirect initiated', [
+                'frontend_url' => $request->query('frontend_url'),
+                'ip' => $request->ip(),
+            ]);
+
+            // Encode the frontend_url as a state parameter so Google passes it through
+            // unchanged to the callback — no cookies or sessions needed.
+            $state = null;
+            if ($frontendUrl) {
+                $state = base64_encode(json_encode(['frontend_url' => $frontendUrl]));
+            }
+
+            $driver = Socialite::driver('google')->stateless();
+
+            if (config('services.google.redirect')) {
+                $driver->redirectUrl(config('services.google.redirect'));
+            }
+
+            if ($state) {
+                $driver->with(['state' => $state]);
+            }
+
+            $response = $driver->redirect();
+
+            // For non-mobile (web) flows, set a cookie so the callback knows the frontend URL.
+            if ($frontendUrl && !str_starts_with($frontendUrl, 'caps://')) {
+                $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
+                if ($frontendUrlCookie) {
+                    $response->withCookie($frontendUrlCookie);
+                }
+            }
+
+            return $response;
+        } catch (\Exception $e) {
+            Log::error('Google OAuth redirect failed: ' . $e->getMessage(), [
+                'exception_class' => get_class($e),
+            ]);
+
+            return $this->redirectToFrontendError(
+                'provider_failed',
+                'Failed to initiate Google login: ' . $e->getMessage(),
+                'google',
+                $frontendUrl
+            );
+        }
+    }
+
+    // Handles the Google provider callback and always sends the browser back to the frontend.
+    public function handleGoogleCallback(Request $request)
+    {
+        $frontendUrl = null;
+
+        try {
+            // Decode the frontend_url from the state parameter (mobile) or cookie (web).
+            // Socialite passes custom provider parameters back as query params after Google redirects.
+            $state = $request->query('state');
+            if ($state) {
+                $frontendUrl = $this->decodeFrontendUrlState($state);
+            }
+
+            Log::info('Google OAuth callback received', [
+                'url' => request()->fullUrl(),
+                'query_params' => request()->query(),
+                'frontend_url_from_state' => $frontendUrl,
+                'cookie_oauth_frontend_url' => request()->cookie('oauth_frontend_url'),
+                'user_agent' => request()->userAgent(),
+                'ip' => request()->ip(),
+            ]);
+
+            $googleUser = Socialite::driver('google')->stateless()
+                ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
+                ->user();
+
+            Log::info('Google OAuth user retrieved', [
+                'email' => $googleUser->getEmail(),
+                'name' => $googleUser->getName(),
+                'id' => $googleUser->getId(),
+            ]);
+
+            return $this->handleOAuthUser($googleUser, 'google', $frontendUrl);
+        } catch (\Exception $e) {
+            Log::error('Google OAuth error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'exception_class' => get_class($e),
+            ]);
+            return $this->redirectToFrontendError(
+                'provider_failed',
+                'Failed to authenticate with Google.',
+                'google',
+                $frontendUrl
+            );
+        }
+    }
+
+    // Starts the Facebook OAuth flow and remembers which frontend should receive the callback result.
+    public function redirectToFacebook(Request $request)
+    {
+        $frontendUrl = $request->query('frontend_url');
+
+        try {
+            if (!config('services.facebook.client_id')) {
+                throw new \Exception('Facebook Client ID is missing. Check your .env file and configuration cache.');
+            }
+
+            Log::info('Facebook OAuth redirect initiated', [
+                'frontend_url' => $frontendUrl,
+                'ip' => $request->ip(),
+            ]);
+
+            $state = null;
+            if ($frontendUrl) {
+                $state = base64_encode(json_encode(['frontend_url' => $frontendUrl]));
+            }
+
+            $driver = Socialite::driver('facebook')->stateless();
+
+            if (config('services.facebook.redirect')) {
+                $driver->redirectUrl(config('services.facebook.redirect'));
+            }
+
+            if ($state) {
+                $driver->with(['state' => $state]);
+            }
+
+            $response = $driver->redirect();
+
+            if ($frontendUrl && !str_starts_with($frontendUrl, 'caps://')) {
+                $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
+                if ($frontendUrlCookie) {
+                    $response->withCookie($frontendUrlCookie);
+                }
+            }
+
+            return $response;
+        } catch (\Exception $e) {
+            Log::error('Facebook OAuth redirect failed: ' . $e->getMessage(), [
+                'exception_class' => get_class($e),
+            ]);
+
+            return $this->redirectToFrontendError(
+                'provider_failed',
+                'Failed to initiate Facebook login: ' . $e->getMessage(),
+                'facebook',
+                $frontendUrl
+            );
+        }
+    }
+
+    // Handles the Facebook provider callback and always sends the browser back to the frontend.
+    public function handleFacebookCallback(Request $request)
+    {
+        $frontendUrl = null;
+
+        try {
+            $state = $request->query('state');
+            if ($state) {
+                $frontendUrl = $this->decodeFrontendUrlState($state);
+            }
+
+            Log::info('Facebook OAuth callback received', [
+                'url' => request()->fullUrl(),
+                'frontend_url_from_state' => $frontendUrl,
+                'cookie_oauth_frontend_url' => request()->cookie('oauth_frontend_url'),
+                'user_agent' => request()->userAgent(),
+                'ip' => request()->ip(),
+            ]);
+
+            $facebookUser = Socialite::driver('facebook')->stateless()
+                ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
+                ->user();
+            return $this->handleOAuthUser($facebookUser, 'facebook', $frontendUrl);
+        } catch (\Exception $e) {
+            Log::error('Facebook OAuth error: ' . $e->getMessage());
+            return $this->redirectToFrontendError(
+                'provider_failed',
+                'Failed to authenticate with Facebook.',
+                'facebook',
+                $frontendUrl
+            );
+        }
+    }
+
+    private function handleOAuthUser($oauthUser, $provider, ?string $frontendUrl = null)
+    {
+        $providerId = $provider . '_id';
+
+        // FIRST: Try to find user by social ID (already linked)
+        $user = User::where($providerId, $oauthUser->getId())->first();
+
+        if (!$user) {
+            // SECOND: Try to find user by email (registered but not linked yet)
+            $user = User::where('email', $oauthUser->getEmail())->first();
+
+            if (!$user) {
+                Log::warning('Social login attempt failed: No account found with this email.', [
+                    'provider'  => $provider,
+                    'email'     => $oauthUser->getEmail(),
+                    'social_id' => $oauthUser->getId(),
+                ]);
+
+                return $this->redirectToFrontendError(
+                    'no_account',
+                    'No CAPS account found with this email. Please register first.',
+                    $provider,
+                    $frontendUrl
+                );
+            }
+
+            // THIRD: Check if user is approved/registered
+            $pendingStatusId = \DB::table('statuses')->where('name', 'pending')->first()->id ?? null;
+            $registeredStatusId = \DB::table('statuses')->where('name', 'registered')->first()->id ?? null;
+            // Legacy accounts approved before the social-auth feature carry the old
+            // "approved" status instead of "registered". Treat both as valid good-statuses.
+            $approvedStatusId = \DB::table('statuses')->where('name', 'approved')->first()->id ?? null;
+            $validStatusIds = array_filter([$registeredStatusId, $approvedStatusId]);
+
+            if ($user->status_id === $pendingStatusId) {
+                Log::warning('Social login blocked: Account is pending approval.', [
+                    'provider' => $provider,
+                    'userID' => $user->userID,
+                    'email' => $oauthUser->getEmail(),
+                ]);
+
+                return $this->redirectToFrontendError(
+                    'account_pending',
+                    'Your account is pending approval. Please wait for administrator verification.',
+                    $provider,
+                    $frontendUrl
+                );
+            }
+
+            if (!in_array($user->status_id, $validStatusIds, true)) {
+                Log::warning('Social login blocked: Account not approved.', [
+                    'provider' => $provider,
+                    'userID' => $user->userID,
+                    'email' => $oauthUser->getEmail(),
+                ]);
+
+                return $this->redirectToFrontendError(
+                    'account_not_approved',
+                    'Your account is not approved. Please wait for administrator verification.',
+                    $provider,
+                    $frontendUrl
+                );
+            }
+
+            // FOURTH: Auto-link the social account
+            Log::info('Auto-linking social account to approved user.', [
+                'provider' => $provider,
+                'userID' => $user->userID,
+                'email' => $oauthUser->getEmail(),
+                'social_id' => $oauthUser->getId(),
+            ]);
+
+            $user->update([$providerId => $oauthUser->getId()]);
+        }
+
+        // STATUS CHECK: Mirror the same checks used in AuthController@login.
+        $pendingStatusId = \DB::table('statuses')->where('name', 'pending')->first()->id ?? null;
+
+        if ($pendingStatusId && $user->status_id === $pendingStatusId) {
+            Log::warning('Social login blocked: Account is pending.', [
+                'provider' => $provider,
+                'userID' => $user->userID,
+            ]);
+
+            return $this->redirectToFrontendError(
+                'account_pending',
+                'Your account is pending approval. Please wait for administrator verification.',
+                $provider,
+                $frontendUrl
+            );
+        }
+
+        // ACTIVE CHECK: Block inactive accounts just like AuthController@login.
+        if (!$user->isActive) {
+            Log::warning('Social login blocked: Account is inactive.', [
+                'provider' => $provider,
+                'userID' => $user->userID,
+            ]);
+
+            return $this->redirectToFrontendError(
+                'account_inactive',
+                'Your account is inactive. Please contact an administrator to reactivate your account.',
+                $provider,
+                $frontendUrl
+            );
+        }
+
+        return $this->redirectToFrontendSuccess($user, $provider, $frontendUrl);
+    }
+
+    // Creates a Sanctum token and returns the user to the frontend callback route with success params.
+    private function redirectToFrontendSuccess(User $user, string $provider, ?string $frontendUrl = null)
+    {
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return redirect()->away($this->buildFrontendCallbackUrl($provider, [
+            'social_token' => $token,
+            'provider' => $provider,
+        ], $frontendUrl))->withoutCookie('oauth_frontend_url');
+    }
+
+    // Returns the user to the frontend with a provider-specific error code and message.
+    private function redirectToFrontendError(string $code, string $message, string $provider, ?string $frontendUrl = null)
+    {
+        return redirect()->away($this->buildFrontendCallbackUrl($provider, [
+            'social_error' => $code,
+            'message' => $message,
+            'provider' => $provider,
+        ], $frontendUrl))->withoutCookie('oauth_frontend_url');
+    }
+
+    // Builds a frontend URL from the resolved base URL, callback path, and query parameters.
+    private function buildFrontendUrl(string $path = '/', array $params = [], ?string $baseUrl = null): string
+    {
+        $baseUrl = rtrim($baseUrl ?: $this->resolveFrontendBaseUrl(), '/');
+        $normalizedPath = '/' . ltrim($path, '/');
+        $query = http_build_query($params);
+
+        return $query
+            ? "{$baseUrl}{$normalizedPath}?{$query}"
+            : "{$baseUrl}{$normalizedPath}";
+    }
+
+    private function buildFrontendCallbackUrl(string $provider, array $params, ?string $frontendUrl = null): string
+    {
+        if ($this->isMobileFrontendUrl($frontendUrl)) {
+            return $this->appendQueryString($frontendUrl, $params);
+        }
+
+        $baseUrl = $this->isAllowedFrontendUrl($frontendUrl)
+            ? $frontendUrl
+            : $this->resolveFrontendBaseUrl();
+
+        return $this->buildFrontendUrl("/auth/{$provider}/callback", $params, $baseUrl);
+    }
+
+    private function appendQueryString(string $url, array $params): string
+    {
+        $query = http_build_query($params);
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return "{$url}{$separator}{$query}";
+    }
+
+    private function decodeFrontendUrlState(?string $state): ?string
+    {
+        if (!$state) {
+            return null;
+        }
+
+        $decoded = json_decode(base64_decode($state, true) ?: '', true);
+
+        return is_array($decoded) && isset($decoded['frontend_url'])
+            ? $decoded['frontend_url']
+            : null;
+    }
+
+    // Chooses the safest frontend base URL from the OAuth cookie, config, or a local fallback guess.
+    private function resolveFrontendBaseUrl(): string
+    {
+        $cookieFrontendUrl = request()->cookie('oauth_frontend_url');
+        $configuredFrontendUrl = config('app.frontend_url');
+
+        if ($this->isAllowedFrontendUrl($cookieFrontendUrl)) {
+            return $cookieFrontendUrl;
+        }
+
+        if ($this->isAllowedFrontendUrl($configuredFrontendUrl)) {
+            return $configuredFrontendUrl;
+        }
+
+        return $this->guessFrontendUrl();
+    }
+
+    // Stores an approved frontend URL in a short-lived cookie so the provider callback can reuse it.
+    private function makeFrontendUrlCookie(Request $request)
+    {
+        $frontendUrl = $request->query('frontend_url');
+
+        // Reject empty values and non-HTTP(S) URLs that aren't the mobile scheme
+        if (!$frontendUrl) {
+            return null;
+        }
+
+        if (str_starts_with($frontendUrl, 'caps://')) {
+            return cookie(
+                'oauth_frontend_url',
+                $frontendUrl,
+                10,
+                '/',
+                null,
+                false,
+                false,
+                false,
+                'Lax'
+            );
+        }
+
+        if (!$this->isAllowedFrontendUrl($frontendUrl)) {
+            return null;
+        }
+
+        return cookie(
+            'oauth_frontend_url',
+            $frontendUrl,
+            10,
+            '/',
+            null,
+            false,
+            false,
+            false,
+            'Lax'
+        );
+    }
+
+    // Limits frontend redirects to known hosts so OAuth callbacks cannot be turned into open redirects.
+    private function isAllowedFrontendUrl(?string $frontendUrl): bool
+    {
+        if (!$frontendUrl || !filter_var($frontendUrl, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        $scheme = parse_url($frontendUrl, PHP_URL_SCHEME);
+        $host = parse_url($frontendUrl, PHP_URL_HOST);
+        $path = parse_url($frontendUrl, PHP_URL_PATH) ?: '';
+        $port = parse_url($frontendUrl, PHP_URL_PORT);
+        $configuredHost = parse_url(config('app.frontend_url'), PHP_URL_HOST);
+        $requestHost = request()->getHost();
+        $requestPort = request()->getPort();
+        $frontendPort = $port ?: ($scheme === 'https' ? 443 : 80);
+
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+
+        // Never treat the backend API itself as a frontend. Otherwise an OAuth
+        // error/success callback can redirect back into this controller forever.
+        if (str_starts_with($path, '/api')) {
+            return false;
+        }
+
+        if ($host === $requestHost && (int) $frontendPort === (int) $requestPort) {
+            return false;
+        }
+
+        return in_array($host, array_filter([
+            $requestHost,
+            $configuredHost,
+            'localhost',
+            '127.0.0.1',
+        ]), true);
+    }
+
+    private function isMobileFrontendUrl(?string $frontendUrl): bool
+    {
+        return is_string($frontendUrl) && str_starts_with($frontendUrl, 'caps://');
+    }
+
+    // Provides a final localhost-style fallback when no trusted frontend URL was supplied.
+    private function guessFrontendUrl(): string
+    {
+        $request = request();
+        $scheme = $request->getScheme() ?: parse_url(config('app.url'), PHP_URL_SCHEME) ?: 'http';
+        $host = $request->getHost() ?: parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
+        $port = (int) $request->getPort();
+
+        if ($port === 8000 && !in_array($host, ['localhost', '127.0.0.1'], true)) {
+            return "{$scheme}://{$host}:8005";
+        }
+
+        return "{$scheme}://{$host}:5173";
+    }
+
+    // Mobile Google Login — accepts a Google ID token directly from a native app.
+    public function mobileGoogleLogin(Request $request)
+    {
+        try {
+            $request->validate([
+                'idToken' => 'required|string',
+                'email' => 'required|email',
+                'name' => 'nullable|string',
+                'providerId' => 'nullable|string',
+            ]);
+
+            // Verify the Google ID token via Google's tokeninfo endpoint
+            $idToken = $request->input('idToken');
+            $tokenInfoUrl = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($idToken);
+            $tokenInfoResponse = @file_get_contents($tokenInfoUrl);
+
+            if (!$tokenInfoResponse) {
+                return response()->json(['message' => 'Unable to verify Google ID token'], 401);
+            }
+
+            $googlePayload = json_decode($tokenInfoResponse, true);
+
+            if (isset($googlePayload['error']) || empty($googlePayload['email'])) {
+                return response()->json(['message' => 'Invalid Google ID token'], 401);
+            }
+
+            // Ensure the token email matches the request email
+            if ($googlePayload['email'] !== $request->input('email')) {
+                return response()->json(['message' => 'Email mismatch with Google token'], 401);
+            }
+
+            $providerId = $request->input('providerId') ?? ($googlePayload['sub'] ?? null);
+
+            // STRICT CHECK: Only allow login if the Google ID is already explicitly linked.
+            $user = $providerId ? User::where('google_id', $providerId)->first() : null;
+
+            if (!$user) {
+                return response()->json([
+                    'message' => 'This Google account is not linked to a CAPS account. Please log in normally and link it in your settings.',
+                ], 404);
+            }
+
+            // Status checks (mirror handleOAuthUser logic)
+            $pendingStatusId = \DB::table('statuses')->where('name', 'pending')->first()->id ?? null;
+            if ($pendingStatusId && $user->status_id === $pendingStatusId) {
+                return response()->json([
+                    'message' => 'Your account is pending approval. Please wait for administrator verification.',
+                ], 403);
+            }
+
+            if (!$user->isActive) {
+                return response()->json([
+                    'message' => 'Your account is inactive. Please contact an administrator to reactivate your account.',
+                ], 403);
+            }
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'token' => $token,
+                'user' => $user,
+                'message' => 'Authenticated successfully',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Mobile Google login error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to authenticate with Google.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Links an OAuth provider to an already authenticated CAPS account after token verification.
+    public function verifyLink(Request $request)
+    {
+        try {
+            // Validate request inputs
+            $request->validate([
+                'email' => 'required|email|exists:users,email',
+                'provider' => 'required|in:google,facebook',
+                'oauth_token' => 'required|string'
+            ]);
+
+            // Look up user by email inside try-catch to prevent naked database stack traces
+            $user = User::where('email', $request->email)->first();
+
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 404);
+            }
+
+            $provider = $request->provider;
+            $providerId = $provider . '_id';
+
+            if ($user->$providerId) {
+                return response()->json(['message' => 'Account already linked'], 400);
+            }
+
+            // Verify OAuth token and link account
+            $oauthUser = Socialite::driver($provider)
+                ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
+                ->userFromToken($request->oauth_token);
+
+            $user->$providerId = $oauthUser->getId();
+            $user->save();
+
+            // Log in user and generate token
+            Auth::login($user);
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'message' => 'Account linked successfully',
+                'user' => $user,
+                'token' => $token
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Handle validation errors with proper error format
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Link verification error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to verify OAuth token', 'error' => $e->getMessage()], 500);
+        }
+    }
+}

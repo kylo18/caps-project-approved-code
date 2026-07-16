@@ -17,6 +17,9 @@ class TokenExpirationMiddleware
 
         $token = $request->bearerToken();
         if (!$token) {
+            if (auth('sanctum')->check()) {
+                return $next($request);
+            }
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
