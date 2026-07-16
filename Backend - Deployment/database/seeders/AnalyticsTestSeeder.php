@@ -116,16 +116,16 @@ class AnalyticsTestSeeder extends Seeder
                     $isCorrect  = ($q + 1) <= $correctCount;
 
                     DB::table('exam_results')->insert([
-                        'attempt_id'  => $attemptId,
-                        'question_id' => $questionId,
-                        'topic_id'    => $topicId,
-                        'subject_id'  => $subjectId,
-                        'difficulty'  => $difficulty,
-                        'is_correct'  => $isCorrect,
-                        'is_skipped'  => false,
-                        'time_spent'  => rand(20, 120),
-                        'created_at'  => now(),
-                        'updated_at'  => now(),
+                        'attempt_id'    => $attemptId,
+                        'question_id'   => $questionId,
+                        'topic_id'      => $topicId,
+                        'subject_id'    => $subjectId,
+                        'difficulty_id' => $difficultyIds[$difficulty] ?? null,
+                        'is_correct'    => $isCorrect,
+                        'is_skipped'    => false,
+                        'time_spent'    => rand(20, 120),
+                        'created_at'    => now(),
+                        'updated_at'    => now(),
                     ]);
                 }
 
