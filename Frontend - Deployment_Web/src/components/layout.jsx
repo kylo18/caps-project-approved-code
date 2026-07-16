@@ -81,6 +81,8 @@ const Layout = () => {
     location.pathname === "/program-chair-dashboard" ||
     location.pathname === "/faculty-dashboard" ||
     location.pathname === "/student-dashboard";
+    
+  const isStudentDashboardPage = location.pathname === "/student-dashboard";
 
   return (
     <div className="min-h-screen">

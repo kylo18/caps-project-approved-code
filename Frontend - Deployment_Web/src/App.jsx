@@ -78,7 +78,7 @@ function App() {
         {/*<Route path="/" element={<Login />} />*/}
         <Route path="/" element={<LandingPage />} />  {/*route for the landing page*/}
         
-        <Route path="/testLogin" element={<TestLogin />} />
+       
 
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
