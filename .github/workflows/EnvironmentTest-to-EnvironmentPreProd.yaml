@@ -1,0 +1,68 @@
+name: Environments/Test to Environment/PreProd CI/CD
+
+on:
+  push:
+    branches:
+      - Environments/Test
+
+jobs:
+  pull-code-on-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH - Pull latest code on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/CAPS/Caps_Senior
+            bash pull_code.sh
+
+  run-tests:
+    needs: pull-code-on-server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Environments/Test
+        uses: actions/checkout@v4
+        with:
+          ref: Environments/Test
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: "Frontend - Deployment/test"
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+        working-directory: "Frontend - Deployment/test"
+
+      - name: Run QA (Playwright)
+        run: node "tests/run-all.cjs"
+        working-directory: "Frontend - Deployment/test"
+        # non-zero exit here fails this job automatically,
+        # which blocks merge-to-preprod below
+
+  merge-to-preprod:
+    needs: run-tests
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge Test into Preprod
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin Environment/PreProd
+          git checkout Environment/PreProd
+          git merge origin/Environments/Test --no-edit
+          git push origin Environment/PreProd
