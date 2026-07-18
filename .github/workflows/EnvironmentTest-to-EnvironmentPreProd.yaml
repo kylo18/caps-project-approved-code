@@ -34,16 +34,16 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm ci
-        working-directory: "Frontend - Deployment"
+        run: npm ci --legacy-peer-deps
+        working-directory: "Frontend - Deployment/test"
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
-        working-directory: "Frontend - Deployment"
+        working-directory: "Frontend - Deployment/test"
 
       - name: Run QA (Playwright)
-        run: node "test/tests/run-all.cjs"
-        working-directory: "Frontend - Deployment"
+        run: node "tests/run-all.cjs"
+        working-directory: "Frontend - Deployment/test"
         # non-zero exit here fails this job automatically,
         # which blocks merge-to-preprod below
 
