@@ -1,4 +1,4 @@
-// helpers/auth.ts
+// 1helpers/auth.ts
 
 import { Page } from '@playwright/test';
 
@@ -22,11 +22,5 @@ export async function login(
   await page.getByRole('button', { name: 'Login' }).click();
 
   // Close announcement if it appears
-  const closeAnnouncement = page
-    .locator('button')
-    .filter({ has: page.locator('i.bx.bx-x') });
-
-  if (await closeAnnouncement.isVisible().catch(() => false)) {
-    await closeAnnouncement.click();
-  }
+  await page.locator('button').filter({ has: page.locator('i.bx.bx-x') }).click();
 }
