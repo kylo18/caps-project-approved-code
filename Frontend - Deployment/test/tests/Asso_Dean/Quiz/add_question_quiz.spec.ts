@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { login } from '../../Helpers/auth.js';
+import {
+  saveQuizQuestion,
+  clearQuizQuestions,
+} from '../../Helpers/storage.js';
 
 test('Dean can add a question to a quiz', async ({ page }) => {
   // Login
@@ -8,6 +12,9 @@ test('Dean can add a question to a quiz', async ({ page }) => {
     process.env.ASSO_DEAN_USERNAME!,
     process.env.ASSO_DEAN_PASSWORD!
   );
+
+  // Clear previously saved questions
+  clearQuizQuestions();
 
   // Navigate
   await page.getByRole('link', { name: 'Library Quizzes' }).click();
@@ -23,6 +30,7 @@ test('Dean can add a question to a quiz', async ({ page }) => {
   await page.getByRole('button', { name: ' Add Question' }).click();
 
   const questionTitle = `Quiz Question-${Date.now()}`;
+  saveQuizQuestion(questionTitle);
 
   // Question Title
   await page.locator('.overflow-wrap-anywhere').fill(questionTitle);
@@ -54,8 +62,12 @@ test('Dean can add a question to a quiz', async ({ page }) => {
 
   // Option B
   await page
-    .locator('div:nth-child(4) > .mt-8 > .relative > .-mt-4')
-    .fill('Option B');
+    .locator('div')
+    .filter({ hasText: /^Type answer option here$/ })
+    .nth(2)
+    .click();
+
+  await page.locator('.-mt-4').first().fill('Option B');
 
   // Option B Image
   await page.getByTitle('Add image').nth(2).click();
@@ -63,6 +75,15 @@ test('Dean can add a question to a quiz', async ({ page }) => {
     .locator('.flex.flex-col.items-center > .hidden')
     .setInputFiles('assets/images/7u7caf.png');
   await page.getByRole('button', { name: 'Apply Crop' }).click();
+
+  // Option D
+  await page
+    .locator('div:nth-child(4) > .mt-8 > .relative > .-mt-4')
+    .click();
+
+  await page
+    .locator('div:nth-child(4) > .mt-8 > .relative > .-mt-4')
+    .fill('Option D');
 
   // Correct Answer
   await page.getByTitle('Mark as correct').nth(2).click();
@@ -72,7 +93,6 @@ test('Dean can add a question to a quiz', async ({ page }) => {
 
   // Verify
   await expect(
-    page.getByText(/Question added to quiz/i)
+    page.getByText(/Question added to quiz!/i)
   ).toBeVisible();
-  await page.pause();
 });

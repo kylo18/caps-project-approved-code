@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { login } from '../../Helpers/auth.js';
+import { getLatestQuizQuestion } from '../../Helpers/storage.js';
 
 test('Dean can copy and edit a quiz question', async ({ page }) => {
   // Login
@@ -22,13 +23,15 @@ test('Dean can copy and edit a quiz question', async ({ page }) => {
   // Copy Question
   await page.getByRole('button', { name: ' Copy' }).nth(1).click();
 
-  // Edit copied question
-  await page.getByText('Quiz Question-').nth(4).click();
-  await page.getByText('Quiz Question-').nth(4).press('ControlOrMeta+a');
-  await page.getByText('Quiz Question-').nth(4).fill('copy and edit 123');
+  const question = getLatestQuizQuestion();
 
-  // Change correct answer
-  await page.getByTitle('Mark as correct').nth(3).click();
+if (!question) {
+  throw new Error('No quiz question found in question_quiz.json');
+}
+
+await page.getByText(question).nth(1).click();
+await page.getByText(question).nth(1).fill('modified123');
+
 
   // Remove existing image
   await page.getByTitle('Remove image').nth(1).click();
@@ -47,11 +50,20 @@ test('Dean can copy and edit a quiz question', async ({ page }) => {
     .setInputFiles('assets/images/Untitled design.png');
   await page.getByRole('button', { name: 'Apply Crop' }).click();
 
+  await page.getByTitle('Add image').nth(1).click();
+  await page
+    .locator('.flex.flex-col.items-center > .hidden')
+    .setInputFiles('assets/images/7u7caf.png');
+  await page.getByRole('button', { name: 'Apply Crop' }).click();
+
+   // Change correct answer
+  await page.getByTitle('Mark as correct').nth(3).click();
+
   // Save copy
   await page.getByRole('button', { name: 'Copy', exact: true }).click();
-
+  
   // Verify
   await expect(
-    page.getByText(/Question copied to quiz!/i)
+    page.getByText(/Question copied successfully!/i)
   ).toBeVisible();
 });
