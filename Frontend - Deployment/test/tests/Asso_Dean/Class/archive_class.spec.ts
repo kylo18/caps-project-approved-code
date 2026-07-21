@@ -44,4 +44,5 @@ test('Dean can archive created classes', async ({ page }) => {
       page.getByText(/Class archived successfully/i)
     ).toBeVisible();
   }
+  await page.pause();
 });
