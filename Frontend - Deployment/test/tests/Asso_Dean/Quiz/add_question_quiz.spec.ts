@@ -29,7 +29,9 @@ test('Dean can add a question to a quiz', async ({ page }) => {
 
   // Question Image
   await page.getByTitle('Add image').first().click();
-  await page.locator('.flex.flex-col > .hidden').setInputFiles('Untitled design.png');
+  await page
+    .locator('.flex.flex-col > .hidden')
+    .setInputFiles('assets/images/Untitled design.png');
   await page.getByRole('button', { name: 'Apply Crop' }).click();
 
   // Question Text
@@ -44,17 +46,23 @@ test('Dean can add a question to a quiz', async ({ page }) => {
     .fill('Option A');
 
   // Option A Image
-  await page.getByTitle('Add image').nth(3).click();
-  await page.getByRole('button', { name: 'Upload from device' }).click();
+  await page.getByTitle('Add image').nth(1).click();
   await page
     .locator('.flex.flex-col.items-center > .hidden')
-    .setInputFiles('7u7caf.png');
+    .setInputFiles('assets/images/7u7caf.png');
   await page.getByRole('button', { name: 'Apply Crop' }).click();
 
   // Option B
   await page
     .locator('div:nth-child(4) > .mt-8 > .relative > .-mt-4')
     .fill('Option B');
+
+  // Option B Image
+  await page.getByTitle('Add image').nth(2).click();
+  await page
+    .locator('.flex.flex-col.items-center > .hidden')
+    .setInputFiles('assets/images/7u7caf.png');
+  await page.getByRole('button', { name: 'Apply Crop' }).click();
 
   // Correct Answer
   await page.getByTitle('Mark as correct').nth(2).click();
@@ -64,6 +72,7 @@ test('Dean can add a question to a quiz', async ({ page }) => {
 
   // Verify
   await expect(
-    page.getByText(/Question added to quiz!/i)
+    page.getByText(/Question added to quiz/i)
   ).toBeVisible();
+  await page.pause();
 });
