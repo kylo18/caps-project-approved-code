@@ -32,6 +32,6 @@ test('Dean can remove quiz questions', async ({ page }) => {
   await page.getByRole('button', { name: 'Confirm' }).click();
 
   await expect(
-    page.getByText(/Question removed successfully/i)
+    page.getByText(/Question removed from personal quiz successfully./i)
   ).toBeVisible();
 });
