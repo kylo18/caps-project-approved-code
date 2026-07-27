@@ -17,6 +17,12 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /home/ubuntu/CAPS/Caps_Senior
+            docker compose down
+            docker container prune -f
+            docker image prune -a -f
+            docker network prune -f
+            docker builder prune -a -f
+            docker system prune -a -f
             bash pull_code.sh
 
   run-tests:
