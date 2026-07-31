@@ -16,6 +16,9 @@ test('Dean can assign a quiz', async ({ page }) => {
   // Open Quiz
   await page.getByRole('button', { name: 'edit Edit' }).first().click();
 
+  // Manage Questions
+  await page.getByRole('button', { name: '易 Manage Questions' }).click();
+
   // Assign Quiz
   await page.getByRole('button', { name: '淚 Assign' }).click();
 
